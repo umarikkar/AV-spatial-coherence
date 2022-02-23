@@ -1,0 +1,6 @@
+Logging into condor
+
+1. Open Terminal
+2. Make sure we are connected to Surrey VPN
+3. Type "ssh um00109@condor.eps.surrey.ac.uk" on the terminal
+4. You will be asked for a p.w. Type your Surrey password
