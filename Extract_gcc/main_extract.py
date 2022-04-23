@@ -1,16 +1,22 @@
 #!/usr/bin/python
 import os
 import glob
+
 import soundfile as sf
+import simpleaudio as sa
 import numpy as np
+import matplotlib.pyplot as plt
+
 from gcc_phat_extraction import generate_gcc_spectrograms, generate_mel_spectrograms
 
 # modify as appropriate
 # base_path = '/home/davide/PycharmProjects/Extract_gcc/'
-base_path = '/Users/umar_m/Projects/MSc-project/AV-spatial-coherence/Extract_gcc'
+base_path = '/Users/umar_m/Projects/MSc-project/AV-spatial-coherence/Extract_gcc/'
 
 rig = '01'  # chose between rig '01' and rig '02'
 seq = 'interactive1_t3'
+play_audio = False
+plot_spectrogram = True
 
 # config metaparameters
 winlen = 512  # samples
@@ -19,7 +25,6 @@ numcep = 64  # number of cepstrum bins (frequency axis)
 n_fft = 512  # samples
 fmin = 40  # min freq cut off
 fmax = 24000  # max freq cut off (no greater than sr/2)
-
 
 def read_audio_file(sequence, rig):
     # ==================== read audio file ===============================
@@ -34,8 +39,14 @@ def read_audio_file(sequence, rig):
 
     audio = []
     for i in range(len(chan_idx)):
-        seq = sorted(glob.glob(sequence_path + chan_idx[i] + '-*.wav'))[i]
+        seq = sorted(glob.glob(sequence_path + chan_idx[i] + '-*.wav'))[0]
         aud, sr = sf.read(seq)
+
+        if play_audio:
+            wave_obj = sa.WaveObject.from_wave_file(seq)
+            play_obj = wave_obj.play()
+            play_obj.wait_done()
+
         audio.append(aud)
 
     audio = np.transpose(np.array(audio))  # (samples, channels)
@@ -73,7 +84,6 @@ def main():
     output_tensor.append(logmel)
 
     output_tensor = np.concatenate(output_tensor, axis=0)  # (n_channels, timebins, freqbins)
-
 
 if __name__ == "__main__":
     main()

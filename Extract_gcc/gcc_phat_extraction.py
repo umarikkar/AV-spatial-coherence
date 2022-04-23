@@ -7,6 +7,7 @@ https://github.com/yinkalario/Two-Stage-Polyphonic-Sound-Event-Detection-and-Loc
 
 import numpy as np
 import librosa
+import matplotlib.pyplot as plt
 
 
 def generate_mel_spectrograms(audio, sr, winlen, hoplen, numcep, n_fft, fmin, fmax):
@@ -53,9 +54,20 @@ def generate_mel_spectrograms(audio, sr, winlen, hoplen, numcep, n_fft, fmin, fm
     logmel_spectrogram = librosa.core.power_to_db(mel_spectrogram, ref=1.0, amin=1e-10, top_db=None)
     logmel_spectrogram = logmel_spectrogram.astype(np.float32)
 
+    """
+    plt.figure(figsize=(15,5))
+    plt.subplot(131)
+    plt.imshow(np.abs(stft_matrix.T), origin='lower', aspect='auto')
+    plt.subplot(132)
+    plt.imshow(mel_spectrogram.T, origin='lower', aspect='auto')
+    plt.subplot(133)
+    plt.imshow(logmel_spectrogram.T, origin='lower', aspect='auto')
+    plt.show()
+    """
 
     logmel_spectrogram = logmel_spectrogram[None, :, :]
     return logmel_spectrogram
+
 
 def generate_gcc_spectrograms(audio, refaudio, winlen, hoplen, numcep, n_fft):
     '''
