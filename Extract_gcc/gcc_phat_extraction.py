@@ -10,7 +10,7 @@ import librosa
 import matplotlib.pyplot as plt
 
 
-def generate_mel_spectrograms(audio, sr, winlen, hoplen, numcep, n_fft, fmin, fmax):
+def generate_mel_spectrograms(audio, sr, winlen, hoplen, numcep, n_fft, fmin, fmax, plot_mel=False):
     '''
     # function that computes the mfcc
 
@@ -47,6 +47,8 @@ def generate_mel_spectrograms(audio, sr, winlen, hoplen, numcep, n_fft, fmin, fm
         dtype=np.complex64,
         pad_mode='reflect').T
 
+    phase_spectrogram = np.dot(np.angle(stft_matrix), melW)
+
     ## COMPUTE MEL SPECTROGRAM
     mel_spectrogram = np.dot(np.abs(stft_matrix) ** 2, melW)
 
@@ -54,22 +56,49 @@ def generate_mel_spectrograms(audio, sr, winlen, hoplen, numcep, n_fft, fmin, fm
     logmel_spectrogram = librosa.core.power_to_db(mel_spectrogram, ref=1.0, amin=1e-10, top_db=None)
     logmel_spectrogram = logmel_spectrogram.astype(np.float32)
 
-    """
-    plt.figure(figsize=(15,5))
-    plt.subplot(131)
-    plt.imshow(np.abs(stft_matrix.T), origin='lower', aspect='auto')
-    plt.subplot(132)
-    plt.imshow(mel_spectrogram.T, origin='lower', aspect='auto')
-    plt.subplot(133)
-    plt.imshow(logmel_spectrogram.T, origin='lower', aspect='auto')
-    plt.show()
-    """
+    if plot_mel:
+        plt.figure(figsize=(15,5))
+        plt.subplot(131)
+        plt.imshow(np.abs(stft_matrix.T), origin='lower', aspect='auto',vmin=0,vmax=1)
+        plt.xlabel('samples')
+        plt.ylabel('frequency bin')
+        plt.subplot(132)
+        plt.imshow(mel_spectrogram.T, origin='lower', aspect='auto',vmin=0,vmax=1)
+        plt.xlabel('samples')
+        plt.ylabel('frequency bin')
+        plt.subplot(133)
+        plt.imshow(logmel_spectrogram.T, origin='lower', aspect='auto',vmin=0,vmax=1)
+        plt.xlabel('samples')
+        plt.ylabel('frequency bin')
+        plt.show()
+
+        plt.figure(figsize=(5,5))
+        # plt.subplot(131)
+        plt.imshow(phase_spectrogram.T, origin='lower', aspect='auto')
+        plt.xlabel('samples')
+        plt.ylabel('frequency bin')
+
+        # plt.subplot(132)
+        # plt.imshow(mel_spectrogram.T, origin='lower', aspect='auto',vmin=0,vmax=1)
+        # plt.xlabel('samples')
+        # plt.ylabel('frequency bin')
+
+        # plt.subplot(133)
+        # plt.imshow(logmel_spectrogram.T, origin='lower', aspect='auto',vmin=0,vmax=1)
+        # plt.xlabel('samples')
+        # plt.ylabel('frequency bin')
+
+        plt.show()
+
+    
+    
 
     logmel_spectrogram = logmel_spectrogram[None, :, :]
-    return logmel_spectrogram
+    phase_spectrogram = phase_spectrogram[None, :, :]
+    return logmel_spectrogram, phase_spectrogram
 
 
-def generate_gcc_spectrograms(audio, refaudio, winlen, hoplen, numcep, n_fft):
+def generate_gcc_spectrograms(audio, refaudio, winlen, hoplen, numcep, n_fft, plot_gcc=False):
     '''
     # function that computes the mfcc
 
@@ -92,6 +121,7 @@ def generate_gcc_spectrograms(audio, refaudio, winlen, hoplen, numcep, n_fft):
                       center=True,
                       window=np.hanning(winlen),
                       pad_mode='reflect')
+
     Px_ref = librosa.stft(y=refaudio,
                           n_fft=n_fft,
                           hop_length=hoplen,
@@ -101,14 +131,30 @@ def generate_gcc_spectrograms(audio, refaudio, winlen, hoplen, numcep, n_fft):
 
     R = Px * np.conj(Px_ref)
 
+    R1 = np.concatenate( ( R[-numcep//2:,:],  R[:numcep//2,:] ) , axis=0 ).T
+
     n_frames = R.shape[1]
     gcc_phat = []
+
     for i in range(n_frames):
         spec = R[:, i].flatten()
         cc = np.fft.irfft(np.exp(1.j * np.angle(spec)))
         cc = np.concatenate((cc[-numcep // 2:], cc[:numcep // 2]))
         gcc_phat.append(cc)
     gcc_phat = np.array(gcc_phat)
+
+    if plot_gcc:
+        plt.figure(figsize=(15,5))
+        plt.subplot(121)
+        plt.imshow(np.real(R), origin='lower', aspect='auto',vmin=0,vmax=1)
+        plt.xlabel('samples')
+        plt.ylabel('frequency bin')
+        plt.subplot(122)
+        plt.imshow(gcc_phat.T, origin='lower', aspect='auto',vmin=0,vmax=1)
+        plt.xlabel('samples')
+        plt.ylabel('time lag')
+        plt.show()
+
 
     gcc_phat = gcc_phat[None, :, :]
     return gcc_phat
