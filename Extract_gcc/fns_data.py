@@ -1,7 +1,7 @@
 import os, glob
 import numpy as np
 import soundfile as sf
-import simpleaudio as sa
+# import simpleaudio as sa
 
 
 def read_audio_file(sequence, rig, base_path, play_audio=False, normalise=False):
@@ -26,10 +26,10 @@ def read_audio_file(sequence, rig, base_path, play_audio=False, normalise=False)
         seq = sorted(glob.glob(sequence_path + chan_idx[i] + '-*.wav'))[0]
         aud, sampling_rate = sf.read(seq)
 
-        if play_audio:
-            wave_obj = sa.WaveObject.from_wave_file(seq)
-            play_obj = wave_obj.play()
-            play_obj.wait_done()
+        # if play_audio:
+        #     wave_obj = sa.WaveObject.from_wave_file(seq)
+        #     play_obj = wave_obj.play()
+        #     play_obj.wait_done()
 
         audio.append(aud)
 
