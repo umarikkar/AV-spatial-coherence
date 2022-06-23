@@ -64,6 +64,7 @@ def main():
         mn = np.mean(vid, axis=0)
         vid_mean[:,:,ch] = mn
         vid_mn = vid - mn
+        print(vid.max())
         vid_mn = 255*(vid_mn - np.min(vid_mn)) / np.max(vid_mn)
         vid_normalised[:,:,:,ch] = vid_mn
 

@@ -41,43 +41,49 @@ def read_audio_file(sequence, train_or_test, rig, initial_time, base_path):
 
     #dir_idx = np.array(['68', '02', '07', '12', '17', '22', '27', '32', '37', '42', '47', '52', '57', '62',
     #                    '80'])  # central 15 look dir indices
-
-    if rig == '01':
-        dir_idx = np.array(['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','16'])
-        """
-        # dir_idx = np.array(['01','02','03','04','05','06','07','08','09','10','11','12','13','15','16']) # 15 mics case
-        # dir_idx = np.array(['01','02','03','04','05','06','07','08','09','10','11','12','14','16']) # 14 mics case
-        # dir_idx = np.array(['01','02','03','04','05','06','07','08','09','10','11','12','16']) # 13 mics case
-        # dir_idx = np.array(['01','02','03','04','05','06','07','08','09','10','11','14']) # 12 mics case
-        # dir_idx = np.array(['01','02','03','04','05','06','07','08','09','10','11']) # 11 mics case
-        # dir_idx = np.array(['02','03','04','05','06','07','08','09','10','14']) # 10 mics case
-        # dir_idx = np.array(['02','03','04','05','06','07','08','09','10']) # 9 mics case
-        # dir_idx = np.array(['02','03','04','05','07','08','09','10']) # 8 mics case
-        # dir_idx = np.array(['02','03','05','06','07','09','10']) # 7 mics case
-        # dir_idx = np.array(['02','03','05','07','09','10']) # 6 mics case
-        # dir_idx = np.array(['03','05','06','07','09']) # 5 mics case
-        #dir_idx = np.array(['03', '05', '07', '09'])  # 4 mics case
-        # dir_idx = np.array(['03','06','09']) # 3 mics case
-        # dir_idx = np.array(['03','09']) # 2 mics case
-        """
-    else:  # rig == '02'
-        dir_idx = np.array(['23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38'])
-        """
-        # dir_idx = np.array(['23','24','25','26','27','28','29','30','31','32','33','34','35','37','38']) # 15 mics case
-        # dir_idx = np.array(['23','24','25','26','27','28','29','30','31','32','33','34','36','38']) # 14 mics case
-        # dir_idx = np.array(['23','24','25','26','27','28','29','30','31','32','33','34','38']) # 13 mics case
-        # dir_idx = np.array(['23','24','25','26','27','28','29','30','31','32','33','36']) # 12 mics case
-        # dir_idx = np.array(['23','24','25','26','27','28','29','30','31','32','33']) # 11 mics case
-        # dir_idx = np.array(['24','25','26','27','28','29','30','31','32','36']) # 10 mics case
-        # dir_idx = np.array(['24','25','26','27','28','29','30','31','32']) # 9 mics case
-        # dir_idx = np.array(['24','25','26','27','29','30','31','32']) # 8 mics case
-        # dir_idx = np.array(['24','25','27','28','29','31','32']) # 7 mics case
-        # dir_idx = np.array(['24','25','27','29','31','32']) # 6 mics case
-        # dir_idx = np.array(['25','27','28','29','31']) # 5 mics case
-        #dir_idx = np.array(['25', '27', '29', '31'])  # 4 mics case
-        # dir_idx = np.array(['25','28','31']) # 3 mics case
-        # dir_idx = np.array(['25','31']) # 2 mics case
-        """
+    if conf.logmelspectro['get_gcc']:
+        if rig == '01':
+            dir_idx = np.array(['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','16'])
+            """
+            # dir_idx = np.array(['01','02','03','04','05','06','07','08','09','10','11','12','13','15','16']) # 15 mics case
+            # dir_idx = np.array(['01','02','03','04','05','06','07','08','09','10','11','12','14','16']) # 14 mics case
+            # dir_idx = np.array(['01','02','03','04','05','06','07','08','09','10','11','12','16']) # 13 mics case
+            # dir_idx = np.array(['01','02','03','04','05','06','07','08','09','10','11','14']) # 12 mics case
+            # dir_idx = np.array(['01','02','03','04','05','06','07','08','09','10','11']) # 11 mics case
+            # dir_idx = np.array(['02','03','04','05','06','07','08','09','10','14']) # 10 mics case
+            # dir_idx = np.array(['02','03','04','05','06','07','08','09','10']) # 9 mics case
+            # dir_idx = np.array(['02','03','04','05','07','08','09','10']) # 8 mics case
+            # dir_idx = np.array(['02','03','05','06','07','09','10']) # 7 mics case
+            # dir_idx = np.array(['02','03','05','07','09','10']) # 6 mics case
+            # dir_idx = np.array(['03','05','06','07','09']) # 5 mics case
+            #dir_idx = np.array(['03', '05', '07', '09'])  # 4 mics case
+            # dir_idx = np.array(['03','06','09']) # 3 mics case
+            # dir_idx = np.array(['03','09']) # 2 mics case
+            """
+        else:  # rig == '02'
+            dir_idx = np.array(['23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38'])
+            """
+            # dir_idx = np.array(['23','24','25','26','27','28','29','30','31','32','33','34','35','37','38']) # 15 mics case
+            # dir_idx = np.array(['23','24','25','26','27','28','29','30','31','32','33','34','36','38']) # 14 mics case
+            # dir_idx = np.array(['23','24','25','26','27','28','29','30','31','32','33','34','38']) # 13 mics case
+            # dir_idx = np.array(['23','24','25','26','27','28','29','30','31','32','33','36']) # 12 mics case
+            # dir_idx = np.array(['23','24','25','26','27','28','29','30','31','32','33']) # 11 mics case
+            # dir_idx = np.array(['24','25','26','27','28','29','30','31','32','36']) # 10 mics case
+            # dir_idx = np.array(['24','25','26','27','28','29','30','31','32']) # 9 mics case
+            # dir_idx = np.array(['24','25','26','27','29','30','31','32']) # 8 mics case
+            # dir_idx = np.array(['24','25','27','28','29','31','32']) # 7 mics case
+            # dir_idx = np.array(['24','25','27','29','31','32']) # 6 mics case
+            # dir_idx = np.array(['25','27','28','29','31']) # 5 mics case
+            #dir_idx = np.array(['25', '27', '29', '31'])  # 4 mics case
+            # dir_idx = np.array(['25','28','31']) # 3 mics case
+            # dir_idx = np.array(['25','31']) # 2 mics case
+            """
+    else:
+        if rig == '01':
+            dir_idx = np.array(['01'])
+            
+        else:  # rig == '02'
+            dir_idx = np.array(['23'])
 
     num_samples = conf.training_param['frame_len_samples']  # number of samples to be kept to produce an audio frame
     # initial audio sample
@@ -132,18 +138,16 @@ def generate_audio_tensor(audio, sr):
     #        tensor.append(utils.generate_gcc_spectrograms(audio[:,m], audio[:,n], winlen, hoplen, numcep, n_fft))
     
     # use reference mic
-    ref_mic_id = 0 #np.int(np.floor(channel_num/2))
-    for n in range(channel_num):
-        if not n == ref_mic_id:
-            tensor.append(utils.generate_gcc_spectrograms(audio[:, n], audio[:, ref_mic_id], winlen, hoplen, numcep, n_fft))
+    if conf.logmelspectro['get_gcc']:
+        ref_mic_id = 0 #np.int(np.floor(channel_num/2))
+        for n in range(channel_num):
+            if not n == ref_mic_id:
+                tensor.append(utils.generate_gcc_spectrograms(audio[:, n], audio[:, ref_mic_id], winlen, hoplen, numcep, n_fft))
 
     ## ---------- ADD mono log mel spect (1st channel only) ------------------------
     # logmel = np.expand_dims(utils.generate_mel_spectrograms(audio[:, 0], sr, winlen, hoplen, numcep, n_fft, fmin, fmax), axis =0)
     logmel = utils.generate_mel_spectrograms(audio[:, 0], sr, winlen, hoplen, numcep, n_fft, fmin, fmax)
 
-    """
-    BUG - REPORT TO DAVIDE
-    """
     tensor.append(logmel)
     
     # for l in tensor:
@@ -170,37 +174,35 @@ def read_video_file(sequence, train_or_test, rig, cam_vid, initial_time, base_pa
 
     frame_path = os.path.join(frame_data_path, sequence, rig, 'cam-'+cam_vid)
 
-    fps = 30
-    start_time = 0.3
-    end_time = 2.3
-    num_frames = 10
+    fps = conf.input['fps']
 
-    frame_idxs = np.linspace(round(start_time*fps), round(end_time*fps), num_frames)
+    period = conf.input['frame_len_sec']
+    end_time = initial_time + period
+    num_frames = conf.training_param['frame_vid_samples']
 
-    imgs = []
-    for idx in frame_idxs:
-        frame_name = os.path.join(frame_path, sequence +'-cam'+ cam_vid + '-frame' + str(int(idx)) + '.jpg')
-        im = Image.open(frame_name)
+    if num_frames !=1:
+        frame_idxs = np.linspace(round(initial_time*fps), round(end_time*fps), num_frames)
+    else:
+        frame_idxs = [round(initial_time*fps)]
 
-        im = transforms.Resize((224, 224))(im)
+    for idx, frame_idx in enumerate(frame_idxs):
+        
+        img_name = sequence +'-cam'+ cam_vid + '-frame' + str(int(frame_idx)) + '.jpg'
+        frame_name = os.path.join(frame_path, img_name)
 
-        # augmenting the images
-        if train_or_test == 'train':
-            im = transforms.ColorJitter((0.6, 1.4), (0.6, 1.4), (0.6, 1.4), (-0.1, 0.1))(im)
-            im = transforms.RandomGrayscale(0.2)(im)
+        if img_name in os.listdir(frame_path):
+            im = Image.open(frame_name)
+            im = transforms.Resize((224, 224))(im)
+            im = transforms.ToTensor()(im)
 
-        im = transforms.ToTensor()(im)
+        if idx == 0:
+            im2 = im.unsqueeze(0)
+        else:
+            im2 = torch.concat((im2, im.unsqueeze(0)), dim=0)
 
-        imgs.append(im)
-
-    return imgs
+    return im2
 
 
-    # print("video: :", sequence_path_video)
-
-    
-
-    return None
 
 class dataset_from_scratch(Dataset):
     def __init__(self, csv_file_path, train_or_test, normalize=False, augment=False, mean=None, std=None):
@@ -272,96 +274,12 @@ class dataset_from_scratch(Dataset):
 
         
 
-    """
-
-    def __getitem__(self, audio_seg):
-
-
-        print(audio_seg)
-        full_name = self.csv_list[self.frame_idx_list[audio_seg]][0]
-        print(full_name)
-        sequence = full_name[:-6]
-        # print(sequence)
-        cam = np.int(full_name[-2:])
-        initial_time = np.float(self.csv_list[self.frame_idx_list[audio_seg]][1])
-        target_coords = []
-        pseudo_labels = []
-        sp_activity = []
-
-        # for idx in range(self.frame_idx_list[audio_seg] - (fps * conf.input['frame_len_sec']//2),
-        #                 self.frame_idx_list[audio_seg] + (fps * conf.input['frame_len_sec']//2)):
-        for idx in range(self.frame_idx_list[audio_seg],
-                         self.frame_idx_list[audio_seg] + (fps * conf.input['frame_len_sec'])):
-            if idx >= len(self.csv_list):  # out of range i.e. the very end of malemonologue2_t2-cam22
-                target_coords.append(1) # default
-                pseudo_labels.append(0)  # NOT_SPEAKING
-                sp_activity.append(0)  # NOT_SPEAKING
-            elif self.csv_list[idx][
-                0] != full_name:  # end of a seq e.g. conv1_t1-cam22 finished and conv1_t2-cam01 starts
-                target_coords.append(1)
-                pseudo_labels.append(0)  # NOT_SPEAKING
-                # pseudo_labels.append('NOT_SPEAKING')
-                sp_activity.append(0)  # NOT_SPEAKING
-                # sp_activity.append('NOT_SPEAKING')
-            else:
-                target_coords.append(self.csv_list[idx][2])
-                if self.csv_list[idx][3] == 'SPEAKING':
-                    pseudo_labels.append(1)
-                else:  # NOT_SPEAKING
-                    pseudo_labels.append(0)
-                if self.csv_list[idx][4] == 'SPEAKING':
-                    sp_activity.append(1)
-                else:  # NOT_SPEAKING
-                    sp_activity.append(0)
-
-        if cam < 12:
-            rig = '01'
-        else:
-            rig = '02'
-            cam = cam - 11
-        cam = utils.cam_one_hot(cam)
-        cam = np.expand_dims(cam, axis=0)
-
-        # read audio files
-
-        # print(sequence, self.train_or_test, rig, initial_time)
-
-        audio, sr = read_audio_file(sequence, self.train_or_test, rig, initial_time, base_path)
-        # compute log mel features and generate 15x960x64 image tensor
-        tensor = generate_audio_tensor(audio, sr)
-
-        if self.normalize:
-            # Normalize feature
-            n_scaler_chan = self.mean.shape[0]
-            # for SALSA feature, only normalize the spectrogram channels
-            if n_scaler_chan < tensor.shape[0]:
-                tensor[:n_scaler_chan] = (tensor[:n_scaler_chan] - self.mean) / self.std
-            else:
-                tensor = (tensor - self.mean) / self.std
-
-        tensor = tensor.astype('float32')
-        input_features = torch.from_numpy(tensor)
-        target_coords = np.asarray(target_coords).astype('float32')
-        pseudo_labels = np.asarray(pseudo_labels).astype('float32')
-        sp_activity = np.asarray(sp_activity).astype('float32')
-        # sequence = np.asarray(list(sequence))
-
-        # if self.train_or_test == 'train':
-        #     return input_features, cam, target_coords, pseudo_labels, sp_activity, sequence
-        # else:  # == 'test
-        #     return input_features, cam, full_name, initial_time
-        if self.train_or_test == 'train':
-            return input_features, cam, sequence
-        else:  # == 'test
-            return input_features, cam, full_name, initial_time
-        
-    """
 
 
 class dataset_from_hdf5(Dataset):
-    def __init__(self, h5py_dir, normalize=False, augment=False, mean=None, std=None):
+    def __init__(self, h5py_path, normalize=False, augment=False, mean=None, std=None):
 
-        self.h5_file = h5py.File(h5py_dir, 'r')
+        self.h5_file = h5py.File(h5py_path, 'r')
         self.normalize = normalize
         self.augment = augment
         self.mean = mean
@@ -373,11 +291,8 @@ class dataset_from_hdf5(Dataset):
     def __getitem__(self, audio_seg):
 
         features = self.h5_file['features'][audio_seg]
-        cams = self.h5_file['cams'][audio_seg]
-        target_coords = self.h5_file['target_coords'][audio_seg]
-        pseudo_labels = self.h5_file['pseudo_labels'][audio_seg]
-        speech_activity = self.h5_file['speech_activity'][audio_seg]
-        sequence = self.h5_file['sequence'][audio_seg]
+        cam = self.h5_file['cams'][audio_seg]
+        imgs = self.h5_file['img_frames'][audio_seg]
 
 
         if self.normalize:
@@ -393,5 +308,5 @@ class dataset_from_hdf5(Dataset):
         input_features = torch.from_numpy(features)
 
         # return input_features, cams, target_coords, pseudo_labels, speech_activity, sequence
-        return input_features, cams, sequence
+        return input_features, cam, imgs
     

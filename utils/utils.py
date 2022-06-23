@@ -292,6 +292,7 @@ def belong_to_val(x, fold):
 
 
 def compute_scaler(h5_file, h5py_dir, is_salsa=False) -> None:
+
     """
     Compute feature mean and std vectors of spectrograms for normalization.
     :param h5file_dir: Feature directory that contains train and test folder.

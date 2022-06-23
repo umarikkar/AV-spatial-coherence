@@ -18,6 +18,7 @@ input = {
     'frame_len_sec': 2, # seconds
     'frame_step_train': 1, #seconds
     'frame_step_test': 2, #seconds
+
 }
 
 beamformer = {
@@ -32,14 +33,18 @@ training_param = {
     'epochs': 50, # this is used if user does not provide the epoch number with the parser
     'batch_size': 32,
     'frame_len_samples': input['frame_len_sec'] * input['sr'], # number of audio samples in 2 sec
+    'frame_vid_samples': 1,
+
     #'input_norm': 'freq_wise', # choose between: 'freq_wise', 'global', or None
     #'step_size':,
     #'gamma': ,
 }
 
 logmelspectro = {
+    'get_gcc':  True,
     'mfcc_azimuth_only': True, # False for using all the 89 look dir, True only the 15 central-horizontal look dir
     'winlen': 512, # samples
+    # 'winlen': 1024,
     'hoplen': 100, # samples
     'numcep': 64, # number of cepstrum bins to return
     'n_fft': 512, #fft lenght
