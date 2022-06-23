@@ -5,10 +5,12 @@ import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 
+import core.config as conf
+
 
 class SubNet_main(nn.Module):
 
-    def __init__(self, mode, multi_mic=True):
+    def __init__(self, mode, multi_mic=conf.logmelspectro['get_gcc']):
         super().__init__()
 
         if mode=='audio':
@@ -113,14 +115,11 @@ class SubNet_aud(nn.Module):
 
 class MergeNet(nn.Module):
 
-    def __init__(self, multi_mic=True):
+    def __init__(self, multi_mic=conf.logmelspectro['get_gcc'], heatmap=conf.dnn_arch['heatmap']):
         super().__init__()
-
+        self.heatmap = heatmap
         self.VideoNet = SubNet_main(mode='video')
-        if not multi_mic:
-            self.AudioNet = SubNet_main(mode='audio', multi_mic=False)
-        else:
-            self.AudioNet = SubNet_main(mode='audio', multi_mic=True)
+        self.AudioNet = SubNet_main(mode='audio', multi_mic=multi_mic)
 
         self.VideoMerge = SubNet_vid()
         self.AudioMerge = SubNet_aud()
@@ -144,33 +143,27 @@ class MergeNet(nn.Module):
 
         x = self.conv1(x)
 
-        # ------ FINAL LAYER FC (NO HEATMAP) ---------------
+        if self.heatmap:
+            x = torch.mean(x, dim=1) # collapsing along dimension
 
-        c = x.shape[1]
-        h, w = x.shape[-2], x.shape[-1]
-        x = torch.mean(x.view(-1,c, h*w), dim=-1)
+            h, w = x.shape[-2], x.shape[-1]
+            x_class = torch.mean(x.view(-1, h*w), dim=-1)
 
-        x = self.FC_final(x)
+            x_class = torch.sigmoid(x_class)
 
-        return x
+            return x, x_class
 
+        else:
+            c = x.shape[1]
+            h, w = x.shape[-2], x.shape[-1]
+            x = torch.mean(x.view(-1,c, h*w), dim=-1)
 
-        # ------ WITH HEATMAP  ---------------
+            x = self.FC_final(x)
 
-        # x = torch.mean(x, dim=1) # collapsing along dimension
-
-        # h, w = x.shape[-2], x.shape[-1]
-        # x_class = torch.mean(x.view(-1, h*w), dim=-1)
-
-        # x_class = torch.sigmoid(x_class)
-
-        # # GAP for au only.
-        # return x, x_class
+            return x
 
 
-
-
-def Trainer(net, epochs, loss_fn, optimiser, train_loader, val_loader, multi_mic=True):
+def Trainer(net, epochs, loss_fn, optimiser, train_loader, val_loader, multi_mic=conf.logmelspectro['get_gcc'], heatmap=conf.dnn_arch['heatmap']):
 
     device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
@@ -180,22 +173,19 @@ def Trainer(net, epochs, loss_fn, optimiser, train_loader, val_loader, multi_mic
 
         loss_train = 0.0
         acc = 0.0
+        loss_l2 = 0.0
         net.train()
 
         for data in train_loader:
 
-            
             BS = data[0].shape[0]
             all_frames = data[-1]
             cam = data[1]
 
-            imgs_pos = all_frames[torch.randint(len(all_frames), (1,1))]
+            # imgs_pos = all_frames[torch.randint(len(all_frames), (1,1))]
+            imgs_pos = all_frames.squeeze(1)
 
-            # multi mic false!
-            if not multi_mic:
-                audio = data[0][:,-1,:,:].unsqueeze(1)
-            else:
-                audio = data[0]
+            audio = data[0]
 
             # create contrastive batch (shift by some n)
             roll_idx = int(torch.randint(low=1, high=BS, size=(1,1)))
@@ -203,56 +193,58 @@ def Trainer(net, epochs, loss_fn, optimiser, train_loader, val_loader, multi_mic
             imgs_neg = torch.roll(imgs_pos, roll_idx, dims=0)
             cam_neg = torch.roll(cam, roll_idx, dims=0)
 
-            # imgs_pos = torch.ones_like(imgs_pos)
-            # imgs_neg = torch.zeros_like(imgs_neg)
-
             imgs_all = torch.concat((imgs_pos, imgs_neg), dim=0).to(device=device)
             audio_all = torch.concat((audio, audio), dim=0).to(device=device)
             cam_all = torch.concat((cam, cam_neg), dim=0).to(device=device)
             
-            """
-            # HEATMAP LOSS ONE ------------------------------------------------------------
-
-            heat_pos, out_pos = net(imgs_pos, audio)
-            heat_neg, out_neg = net(imgs_neg, audio)
-
-            labels_pos = torch.ones(BS).to(device=device)
-            labels_neg = torch.zeros(BS).to(device=device)
-
-            """
-            # # FC layer loss one ----------------------------------------------------------- 
-
-            out = net(imgs_all, audio_all, cam_all)
+            if heatmap:
             
-            one = torch.ones((BS,1))
-            zer = torch.zeros((BS,1))
+                # HEATMAP LOSS ONE ------------------------------------------------------------
 
-            labels_pos = torch.concat((one, zer), dim=-1)
-            labels_neg = torch.concat((zer, one), dim=-1)
+                _, out = net(imgs_all, audio_all, cam_all)
 
-            labels_all = torch.concat((labels_pos, labels_neg), dim=0).to(device=device)
+                labels_pos = torch.ones(BS).to(device=device)
+                labels_neg = torch.zeros(BS).to(device=device)
+                labels_all = torch.concat((labels_pos, labels_neg), dim=0).to(device=device)
 
-            # # CALCULATING ACCURACY -------------------------------------------------------
+                idx1 = torch.zeros_like(out)
+                idx1[out >= 0.5] = 1
+
+                idx2 = labels_all
+
+            else:
             
-            _, idx1 = torch.max(out, dim=-1)
-            _, idx2 = torch.max(labels_all, dim=-1)
+                # FC layer loss one ----------------------------------------------------------- 
 
+                out = net(imgs_all, audio_all, cam_all)
+                
+                one = torch.ones((BS,1))
+                zer = torch.zeros((BS,1))
+
+                labels_pos = torch.concat((one, zer), dim=-1)
+                labels_neg = torch.concat((zer, one), dim=-1)
+                labels_all = torch.concat((labels_pos, labels_neg), dim=0).to(device=device)
+
+                _, idx1 = torch.max(out, dim=-1)
+                _, idx2 = torch.max(labels_all, dim=-1)
+
+
+            ## ACC and LOSS FN ----------------------------------------------------------------
             acc += 100*(1 - torch.abs(idx1-idx2).sum() / len(idx1))
-
-            ## LOSS FN ---------------------------------------------------------------------
 
             loss = loss_fn(out, labels_all)
 
             l2_lambda = 0.0001
-            l2_norm = sum(p.pow(2.0).sum() for p in net.parameters())**0.5 # L2 reg for all the weights
+            l2_reg = l2_lambda*sum(p.pow(2.0).sum() for p in net.parameters())**0.5 # L2 reg for all the weights
 
-            loss = loss + l2_lambda*l2_norm
+            loss += l2_reg
 
             optimiser.zero_grad() 
             loss.backward()
             optimiser.step()
 
             loss_train += loss.item()
+            loss_l2 += l2_reg
             # print(loss.item())
 
 
@@ -289,11 +281,12 @@ def Trainer(net, epochs, loss_fn, optimiser, train_loader, val_loader, multi_mic
             #     'optimizer': optimiser.state_dict()}, path)
 
 
-            print('{} n_batches {}, Epoch {}, Training loss {} Training acc {}%'.format(
+            print('{} n_batches {}, Epoch {}, Training loss {}, L2 loss {}, Training acc {}%'.format(
                 dt, 
                 len(train_loader),
                 epoch,
                 round(loss_train / len(train_loader), 4),
+                round(loss_l2.item() / len(train_loader), 4),
                 round(float(acc/len(train_loader)), 2),
             ))
 

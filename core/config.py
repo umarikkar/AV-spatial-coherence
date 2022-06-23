@@ -18,7 +18,10 @@ input = {
     'frame_len_sec': 2, # seconds
     'frame_step_train': 1, #seconds
     'frame_step_test': 2, #seconds
+}
 
+dnn_arch = {
+    'heatmap':False,
 }
 
 beamformer = {
