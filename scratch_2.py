@@ -6,16 +6,19 @@ import torch
 import torch.optim as optim
 import torch.nn as nn
 import numpy as np
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader, Subset, random_split
 from pathlib import Path
+from math import floor, ceil
+
+import random
+
 
 import core.config as conf
 import utils.utils as utils
 from AVOL import MergeNet, SubNet_main, Trainer
 from core.dataset import dataset_from_hdf5, dataset_from_scratch
 
-def get_dataset(from_h5=True, multi_mic=True, train_or_test='train'):
-
+def get_dataset(from_h5=True, multi_mic=True, train_or_test='train', toy=True):
 
     base_path = conf.input['project_path']
 
@@ -26,23 +29,44 @@ def get_dataset(from_h5=True, multi_mic=True, train_or_test='train'):
 
         h5py_path_str = os.path.join(h5py_dir_str, h5py_name)
         h5py_path = Path(h5py_path_str)
-        d_dataset = dataset_from_hdf5(h5py_path)
+        d_dataset = dataset_from_hdf5(h5py_path, augment=True)
+
 
     else:
         csv_file_path = os.path.join(base_path, 'data', 'train.csv')
         d_dataset = dataset_from_scratch(csv_file_path, train_or_test='train', normalize=False, augment=False)
 
     # DATA LOADER INITIALISATION -----------------------------------------------------------------------------
+    random.seed(5)
+    rand_idxs = list(range(len(d_dataset)))
+    random.shuffle(rand_idxs)
 
-    data_loader = DataLoader(d_dataset, batch_size=1, shuffle=False, num_workers=0, pin_memory=True)
+    train_size = floor(0.8*len(d_dataset))
+    train_idxs = rand_idxs[0:train_size]
+    val_idxs = rand_idxs[train_size:]
 
-    sz = 1024
-    sub_idxs = torch.randint(low=0, high=len(d_dataset), size=(sz,))
+    d_dataset.train_idxs = train_idxs
 
-    d_subset = Subset(d_dataset, sub_idxs)
-    toy_loader = DataLoader(d_subset, batch_size=16, shuffle=True, num_workers=0, pin_memory=True)
+    data_train = Subset(d_dataset, train_idxs)
+    data_val = Subset(d_dataset, val_idxs)
 
-    return data_loader, toy_loader
+    if toy:
+        sz_train = 1024
+        sz_val = int((0.2)*sz_train)
+        rand_train = list(range(sz_train))
+        random.shuffle(rand_train)
+        rand_val = list(range(sz_val))
+        random.shuffle(rand_val)
+
+        data_train = Subset(data_train, rand_train)
+        data_val = Subset(data_val, rand_val)
+
+    train_loader = DataLoader(data_train, batch_size=16, shuffle=True, num_workers=0, pin_memory=True)
+    val_loader = DataLoader(data_val, batch_size=16, shuffle=False, num_workers=0, pin_memory=True)
+
+    print(len(data_train))
+
+    return train_loader, val_loader
 
 
 def main():
@@ -56,7 +80,7 @@ def main():
 
     loss_fn = nn.BCELoss() if conf.dnn_arch['heatmap'] else nn.CrossEntropyLoss()
 
-    data_loader, toy_loader = get_dataset(from_h5=True, multi_mic=multi_mic, train_or_test='train')
+    train_loader, val_loader = get_dataset(from_h5=True, multi_mic=multi_mic, train_or_test='train')
 
     device = (torch.device('cuda') if torch.cuda.is_available()
             else torch.device('cpu'))
@@ -70,7 +94,7 @@ def main():
     # net = nn.Sequential(nn.Linear(2, 2), nn.Linear(2, 2))
     net.apply(init_weights)
 
-    Trainer(net, epochs, loss_fn, optimiser, toy_loader, val_loader=None, multi_mic=multi_mic)
+    Trainer(net, epochs, loss_fn, optimiser, train_loader, val_loader, multi_mic=multi_mic)
 
 
 

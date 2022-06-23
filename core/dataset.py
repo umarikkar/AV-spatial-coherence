@@ -155,13 +155,6 @@ def generate_audio_tensor(audio, sr):
 
     tensor = np.concatenate(tensor, axis=0) # (n_channels, timebins, freqbins)
 
-    ## -------------- SALSA FEATURE EXTRACTION --------------
-
-    #tensor = salsa_ipd_extraction.extract_features(audio, conf=conf, ref_mic=1)
-
-    #tensor = salsa_extraction.extract_features(audio, conf=conf, ref_mic=1)
-
-
     return tensor
 
 
@@ -275,7 +268,6 @@ class dataset_from_scratch(Dataset):
         
 
 
-
 class dataset_from_hdf5(Dataset):
     def __init__(self, h5py_path, normalize=False, augment=False, mean=None, std=None):
 
@@ -292,8 +284,7 @@ class dataset_from_hdf5(Dataset):
 
         features = self.h5_file['features'][audio_seg]
         cam = self.h5_file['cams'][audio_seg]
-        imgs = self.h5_file['img_frames'][audio_seg]
-
+        imgs = torch.from_numpy(self.h5_file['img_frames'][audio_seg])
 
         if self.normalize:
             # Normalize feature
