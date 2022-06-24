@@ -18,7 +18,7 @@ import utils.utils as utils
 from AVOL import MergeNet, SubNet_main, Trainer
 from core.dataset import dataset_from_hdf5, dataset_from_scratch
 
-def get_dataset(from_h5=True, multi_mic=True, train_or_test='train', toy=True):
+def get_dataset(from_h5=True, multi_mic=True, train_or_test='train', toy=False):
 
     base_path = conf.input['project_path']
 
@@ -31,13 +31,17 @@ def get_dataset(from_h5=True, multi_mic=True, train_or_test='train', toy=True):
         h5py_path = Path(h5py_path_str)
         d_dataset = dataset_from_hdf5(h5py_path, augment=True)
 
-
     else:
         csv_file_path = os.path.join(base_path, 'data', 'train.csv')
         d_dataset = dataset_from_scratch(csv_file_path, train_or_test='train', normalize=False, augment=False)
 
+    if toy:
+        sz = 32
+        rand_toy = list(range(sz))
+        random.shuffle(rand_toy)
+        d_dataset = Subset(d_dataset, rand_toy)
+
     # DATA LOADER INITIALISATION -----------------------------------------------------------------------------
-    random.seed(5)
     rand_idxs = list(range(len(d_dataset)))
     random.shuffle(rand_idxs)
 
@@ -45,26 +49,13 @@ def get_dataset(from_h5=True, multi_mic=True, train_or_test='train', toy=True):
     train_idxs = rand_idxs[0:train_size]
     val_idxs = rand_idxs[train_size:]
 
-    d_dataset.train_idxs = train_idxs
-
     data_train = Subset(d_dataset, train_idxs)
     data_val = Subset(d_dataset, val_idxs)
-
-    if toy:
-        sz_train = 1024
-        sz_val = int((0.2)*sz_train)
-        rand_train = list(range(sz_train))
-        random.shuffle(rand_train)
-        rand_val = list(range(sz_val))
-        random.shuffle(rand_val)
-
-        data_train = Subset(data_train, rand_train)
-        data_val = Subset(data_val, rand_val)
 
     train_loader = DataLoader(data_train, batch_size=16, shuffle=True, num_workers=0, pin_memory=True)
     val_loader = DataLoader(data_val, batch_size=16, shuffle=False, num_workers=0, pin_memory=True)
 
-    print(len(data_train))
+    # print(len(data_train))
 
     return train_loader, val_loader
 
@@ -99,6 +90,8 @@ def main():
 
 
 if __name__=='__main__':
+    random.seed(5)
+
     main()
 
 

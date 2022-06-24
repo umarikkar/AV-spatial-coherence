@@ -1,6 +1,6 @@
 import datetime
 import os
-
+import random
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
@@ -166,7 +166,7 @@ class MergeNet(nn.Module):
 
 def create_samples(data, device='cpu', augment=True, take_to_device=True):
 
-    BS = data[0].shape[0]
+    batch_size = data[0].shape[0]
     all_frames = data[-1]
     cam = data[1]
 
@@ -174,8 +174,11 @@ def create_samples(data, device='cpu', augment=True, take_to_device=True):
     audio = data[0]
 
     # create contrastive batch (shift by some n)
-    roll_idx = int(torch.randint(low=1, high=BS, size=(1,1)))
-    roll_idx = 1
+    if batch_size > 1:
+        roll_idx = random.randint(1, batch_size-1)
+    else:
+        roll_idx = 1
+
     imgs_neg = torch.roll(imgs_pos, roll_idx, dims=0)
     cam_neg = torch.roll(cam, roll_idx, dims=0)
 
@@ -185,7 +188,7 @@ def create_samples(data, device='cpu', augment=True, take_to_device=True):
 
     if augment:
         for i in range(imgs_all.shape[0]):
-            imgs_all[i] = transforms.ColorJitter((0.6, 1.4), (0.6, 1.4), (0.6, 1.5), (-0.2, 0.2))(imgs_all[i])
+            imgs_all[i] = transforms.ColorJitter((0.8, 1.2), (0.8, 1.2), (0.8, 1.2), (-0.1, 0.1))(imgs_all[i])
             imgs_all[i] = transforms.RandomGrayscale(0.2)(imgs_all[i])
 
     if take_to_device:
@@ -229,7 +232,8 @@ def Trainer(net, epochs, loss_fn, optimiser, train_loader, val_loader, multi_mic
         for data in train_loader:
 
             BS = data[0].shape[0] # batch size
-            imgs_all, audio_all, cam_all = create_samples(data, device=device)
+            
+            imgs_all, audio_all, cam_all = create_samples(data, device=device, augment=True)
 
             out_all = net(imgs_all, audio_all, cam_all)
             out = out_all[-1] if heatmap else out_all
@@ -249,7 +253,7 @@ def Trainer(net, epochs, loss_fn, optimiser, train_loader, val_loader, multi_mic
             
             # loss function --->
             loss = loss_fn(out, labels_all)
-            l2_lambda = 0.0001
+            l2_lambda = 0.001
             l2_reg = l2_lambda*sum(p.pow(2.0).sum() for p in net.parameters())**0.5 # L2 reg for all the weights
             loss += l2_reg
 
@@ -271,7 +275,7 @@ def Trainer(net, epochs, loss_fn, optimiser, train_loader, val_loader, multi_mic
 
                 BS = data[0].shape[0]
 
-                imgs_all, audio_all, cam_all = create_samples(data, device=device)
+                imgs_all, audio_all, cam_all = create_samples(data, device=device, augment=False)
                 out_all = net(imgs_all, audio_all, cam_all)
                 out = out_all[-1] if heatmap else out_all
 
@@ -293,23 +297,16 @@ def Trainer(net, epochs, loss_fn, optimiser, train_loader, val_loader, multi_mic
                 loss_val += lossVal.item()
 
                 
-        if epoch == 1 or epoch % 1 == 0:
+        if epoch == 1 or epoch % 4 == 0:
             
             dt = datetime.datetime.now()  
 
-            # print('{} Epoch {}, Training loss {}, val loss {}'.format(
-            #     dt, epoch,
-            #     round(loss_train / len(train_loader), 4),
-            #     round(loss_val / len(val_loader), 4),
-            # ))
-
-
-            # path = os.path.join(os.getcwd(), 'checkpoints', 'SepNetViT_nopointconv_ep_' + str(epoch) + '_checkpoint.pt')
-            # # print(path)
-            # torch.save({ 
-            #     'epoch': epoch,
-            #     'model': net.state_dict(),
-            #     'optimizer': optimiser.state_dict()}, path)
+            net_path = os.path.join(os.getcwd(), 'results', 'checkpoints', 'MultiChannel_augment_11k_ep_' + str(epoch) + '_checkpoint.pt')
+            file_path =  os.path.join(os.getcwd(), 'results')
+            torch.save({ 
+                'epoch': epoch,
+                'model': net.state_dict(),
+                'optimizer': optimiser.state_dict()}, net_path)
 
 
             print('{} Epoch {}, Train loss {}, Train acc {}%, Val loss {}, Val acc {}%'.format(
@@ -319,15 +316,10 @@ def Trainer(net, epochs, loss_fn, optimiser, train_loader, val_loader, multi_mic
                 round(float(acc_train/len(train_loader)), 2),
                 round(loss_val / len(val_loader), 4),
                 round(float(acc_val/len(val_loader)), 2),
-            ))
+            ),
+            file=open(os.path.join(file_path, 'MultiChannel_augment_11k.txt'), "a")
+            )
 
-
-            # path = os.path.join(os.getcwd(), 'checkpoints', 'AVOL_scratch_' + str(epoch) + '_checkpoint.pt')
-            # # print(path)
-            # torch.save({ 
-            #     'epoch': epoch,
-            #     'model': net.state_dict(),
-            #     'optimizer': optimiser.state_dict()}, path)
 
     return
 
