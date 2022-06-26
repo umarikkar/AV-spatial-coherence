@@ -1,20 +1,21 @@
 #!/usr/bin/python
-from email.mime import base
 import glob
 import os
 import random
+from email.mime import base
+from math import floor
+from pathlib import Path
 
 import h5py
 import numpy as np
 import soundfile as sf
 import torch
 import utils.utils as utils
-from torch.utils.data import Dataset
+from PIL import Image
+from torch.utils.data import Dataset, Subset
+from torchvision.transforms import transforms
 
 import core.config as conf
-
-from torchvision.transforms import transforms
-from PIL import Image
 
 # from utils import find_audio_frame_idx
 
@@ -30,17 +31,9 @@ fps = conf.input['fps']
 
 
 def read_audio_file(sequence, train_or_test, rig, initial_time, base_path):
-    # ==================== read audio file ===============================
-    #sequence_path = base_path + 'data/' + train_or_test + '/' + sequence + '/bf/' + rig + '/' # beamformer case
-    # sequence_path = base_path + 'data/' + train_or_test + '/' + sequence + '/' + rig + '/'
-
-    # sequence_path = os.path.join(base_path, sequence, rig, '')
 
     sequence_path = os.path.join(base_path, 'data', 'RJDataset', 'audio', sequence, rig, '')
 
-
-    #dir_idx = np.array(['68', '02', '07', '12', '17', '22', '27', '32', '37', '42', '47', '52', '57', '62',
-    #                    '80'])  # central 15 look dir indices
     if conf.logmelspectro['get_gcc']:
         if rig == '01':
             dir_idx = np.array(['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','16'])
@@ -89,13 +82,11 @@ def read_audio_file(sequence, train_or_test, rig, initial_time, base_path):
     # initial audio sample
     first_audio_sample = np.int((np.round(initial_time * fps) / fps) * conf.input['sr'])
 
-    # audio_file_list = sorted(glob.glob(sequence_path + '/*.wav'))
     audio = []
     for i in range(len(dir_idx)):
 
         seq = sorted(glob.glob(sequence_path + dir_idx[i] + '-*.wav'))[0]
         aud, sr = sf.read(seq)
-        #aud, sr = sf.read(sequence_path + dir_idx[i] + '.wav')
         aud = aud[first_audio_sample:first_audio_sample + num_samples]
         aud = utils.pad_audio_clip(aud, num_samples) # pad in the case the extracted segment is too short
         audio.append(aud)
@@ -104,55 +95,34 @@ def read_audio_file(sequence, train_or_test, rig, initial_time, base_path):
     return audio, sr
 
 
-def generate_audio_tensor(audio, sr):
-    ## ======================= compute log mel features ===================
+def generate_audio_tensor(audio, sr, multi_mic = conf.logmelspectro['multi_mic'], get_gcc=conf.logmelspectro['get_gcc']):
 
+    ## ======================= compute log mel features ===================
     winlen = conf.logmelspectro['winlen']
     hoplen = conf.logmelspectro['hoplen']
     numcep = conf.logmelspectro['numcep']
     n_fft = conf.logmelspectro['n_fft']
     fmin = conf.logmelspectro['fmin']
     fmax = conf.logmelspectro['fmax']
-    azimuth_only = conf.logmelspectro['mfcc_azimuth_only']
-    # start = time.time()
 
-    ## ----------- LOG MEL SPECTROGRAMS TENSOR -------------
-    '''
-    #logmel_sp = utils.generate_mel_spectrograms(audio[:, 0], sr, winlen, hoplen, numcep, n_fft, fmin, fmax)
-    #tensor = np.expand_dims(logmel_sp, axis=0)
     tensor = [] # log mel tensor
     channel_num = audio.shape[1]
-    for idx in range(channel_num):
-        logmel_sp = utils.generate_mel_spectrograms(audio[:, idx], sr, winlen, hoplen, numcep, n_fft, fmin, fmax)
-        tensor.append(logmel_sp)
-    tensor = np.concatenate(tensor, axis=0) # (n_channels, timebins, freqbins)
-    '''
-    ## ----------- GCC SPECTROGRAMS TENSOR -------------
-
-    tensor = [] # gcc_tensor
-    channel_num = audio.shape[1]
-
-    # use all possible pairs
-    #for n in range(channel_num):
-    #    for m in range(n + 1, channel_num):
-    #        tensor.append(utils.generate_gcc_spectrograms(audio[:,m], audio[:,n], winlen, hoplen, numcep, n_fft))
     
-    # use reference mic
-    if conf.logmelspectro['get_gcc']:
-        ref_mic_id = 0 #np.int(np.floor(channel_num/2))
+    ref_mic_id = 0
+
+    if multi_mic:
         for n in range(channel_num):
-            if not n == ref_mic_id:
-                tensor.append(utils.generate_gcc_spectrograms(audio[:, n], audio[:, ref_mic_id], winlen, hoplen, numcep, n_fft))
+            if not n==ref_mic_id:
+                if get_gcc:
+                    tensor.append(utils.generate_gcc_spectrograms(audio[:, n], audio[:, ref_mic_id], winlen, hoplen, numcep, n_fft))
+                else:
+                    tensor.append(utils.generate_mel_spectrograms(audio[:, n], sr, winlen, hoplen, numcep, n_fft, fmin, fmax))
+    else:
+        pass
 
-    ## ---------- ADD mono log mel spect (1st channel only) ------------------------
-    # logmel = np.expand_dims(utils.generate_mel_spectrograms(audio[:, 0], sr, winlen, hoplen, numcep, n_fft, fmin, fmax), axis =0)
-    logmel = utils.generate_mel_spectrograms(audio[:, 0], sr, winlen, hoplen, numcep, n_fft, fmin, fmax)
-
+    logmel = utils.generate_mel_spectrograms(audio[:, ref_mic_id], sr, winlen, hoplen, numcep, n_fft, fmin, fmax)
     tensor.append(logmel)
-    
-    # for l in tensor:
-    #     print(l.shape)
-
+        
     tensor = np.concatenate(tensor, axis=0) # (n_channels, timebins, freqbins)
 
     return tensor
@@ -301,3 +271,39 @@ class dataset_from_hdf5(Dataset):
         # return input_features, cams, target_coords, pseudo_labels, speech_activity, sequence
         return input_features, cam, imgs
     
+
+def get_train_val(from_h5=True, multi_mic=conf.logmelspectro['multi_mic'], train_or_test='train', toy=False, toy_size=1024):
+
+    base_path = conf.input['project_path']
+
+    if from_h5:
+        mic_info = 'MultiChannel' if multi_mic else 'SingleChannel'
+        h5py_dir_str = os.path.join(base_path, 'data', 'h5py_%s' %mic_info,'')
+        h5py_name = '%s_%s.h5' % (train_or_test, mic_info)
+
+        h5py_path_str = os.path.join(h5py_dir_str, h5py_name)
+        h5py_path = Path(h5py_path_str)
+        d_dataset = dataset_from_hdf5(h5py_path, augment=True)
+
+    else:
+        csv_file_path = os.path.join(base_path, 'data', 'train.csv')
+        d_dataset = dataset_from_scratch(csv_file_path, train_or_test='train', normalize=False, augment=False)
+
+    if toy:
+        sz = 32
+        rand_toy = list(range(sz))
+        random.shuffle(rand_toy)
+        d_dataset = Subset(d_dataset, rand_toy)
+
+    # DATA LOADER INITIALISATION -----------------------------------------------------------------------------
+    rand_idxs = list(range(len(d_dataset)))
+    random.shuffle(rand_idxs)
+
+    train_size = floor(0.8*len(d_dataset))
+    train_idxs = rand_idxs[0:train_size]
+    val_idxs = rand_idxs[train_size:]
+
+    data_train = Subset(d_dataset, train_idxs)
+    data_val = Subset(d_dataset, val_idxs)
+
+    return data_train, data_val

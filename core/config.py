@@ -18,6 +18,7 @@ input = {
     'frame_len_sec': 2, # seconds
     'frame_step_train': 1, #seconds
     'frame_step_test': 2, #seconds
+    
 }
 
 dnn_arch = {
@@ -45,6 +46,7 @@ training_param = {
 
 logmelspectro = {
     'get_gcc':  True,
+    'multi_mic': True,
     'mfcc_azimuth_only': True, # False for using all the 89 look dir, True only the 15 central-horizontal look dir
     'winlen': 512, # samples
     # 'winlen': 1024,
