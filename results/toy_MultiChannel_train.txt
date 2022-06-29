@@ -1,4 +1,4 @@
-size=1024, BS=16, lambda=0.0001, heatmap=False, multi_mic=False ------------------------------->
+size=1024, BS=16, lambda=0.0001, heatmap=False, multi_mic=True ------------------------------->
 
 2022-06-23 15:29:23.976235 n_batches 64, Epoch 1, Training loss 0.6912, L2 loss 0.0094, Training acc 56.69%
 2022-06-23 15:30:11.702677 n_batches 64, Epoch 2, Training loss 0.6532, L2 loss 0.0094, Training acc 62.16%

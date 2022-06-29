@@ -15,6 +15,8 @@ from PIL import Image
 from torch.utils.data import Dataset, Subset
 from torchvision.transforms import transforms
 
+import pickle
+
 import core.config as conf
 
 # from utils import find_audio_frame_idx
@@ -272,36 +274,71 @@ class dataset_from_hdf5(Dataset):
         return input_features, cam, imgs
     
 
-def get_train_val(from_h5=True, multi_mic=conf.logmelspectro['multi_mic'], train_or_test='train', toy=False, toy_size=1024):
+def get_train_val(multi_mic=conf.logmelspectro['multi_mic'], train_or_test='train', toy_params=conf.training_param['toy_params']):
 
     base_path = conf.input['project_path']
 
-    if from_h5:
-        mic_info = 'MultiChannel' if multi_mic else 'SingleChannel'
-        h5py_dir_str = os.path.join(base_path, 'data', 'h5py_%s' %mic_info,'')
-        h5py_name = '%s_%s.h5' % (train_or_test, mic_info)
 
-        h5py_path_str = os.path.join(h5py_dir_str, h5py_name)
-        h5py_path = Path(h5py_path_str)
-        d_dataset = dataset_from_hdf5(h5py_path, augment=True)
+    mic_info = 'MultiChannel' if multi_mic else 'SingleChannel'
+    h5py_dir_str = os.path.join(base_path, 'data', 'h5py_%s' %mic_info,'')
+    h5py_name = '%s_%s.h5' % (train_or_test, mic_info)
 
-    else:
-        csv_file_path = os.path.join(base_path, 'data', 'train.csv')
-        d_dataset = dataset_from_scratch(csv_file_path, train_or_test='train', normalize=False, augment=False)
+    h5py_path_str = os.path.join(h5py_dir_str, h5py_name)
+    h5py_path = Path(h5py_path_str)
+    d_dataset = dataset_from_hdf5(h5py_path, augment=True)
 
-    if toy:
-        sz = 32
-        rand_toy = list(range(sz))
+
+    if toy_params[0]:
+        sz_train = toy_params[1]
+        sz_val = int(0.2 * (toy_params[1] / 0.8))
+
+        rand_toy = list(range(sz_train + sz_val))
         random.shuffle(rand_toy)
         d_dataset = Subset(d_dataset, rand_toy)
 
     # DATA LOADER INITIALISATION -----------------------------------------------------------------------------
-    rand_idxs = list(range(len(d_dataset)))
-    random.shuffle(rand_idxs)
 
-    train_size = floor(0.8*len(d_dataset))
-    train_idxs = rand_idxs[0:train_size]
-    val_idxs = rand_idxs[train_size:]
+    file_train = os.path.join(conf.filenames['net_folder_path'], 'idxs_train.pkl')
+    file_val = os.path.join(conf.filenames['net_folder_path'], 'idxs_val.pkl')
+
+    files = [file_train, file_val]
+
+    load_files = True
+    
+    for i,f in enumerate(files):
+        if not os.path.exists(f):
+            print('making new indexes')
+            load_files = False
+            break
+        else:
+            print('getting pre-computed indexes')
+            open_file = open(f, "rb")
+            if i==0:
+                train_idxs = pickle.load(open_file)
+            else:
+                val_idxs = pickle.load(open_file)
+            open_file.close()
+
+
+    if not load_files:
+
+        rand_idxs = list(range(len(d_dataset)))
+        random.shuffle(rand_idxs)
+
+        train_size = floor(0.8*len(d_dataset))
+        train_idxs = rand_idxs[0:train_size]
+        val_idxs = rand_idxs[train_size:]
+
+        file_train = os.path.join(conf.filenames['net_folder_path'], 'idxs_train.pkl')
+        file_val = os.path.join(conf.filenames['net_folder_path'], 'idxs_val.pkl')
+
+        open_file = open(file_train, "wb")
+        pickle.dump(train_idxs, open_file)
+        open_file.close()
+
+        open_file = open(file_val, "wb")
+        pickle.dump(val_idxs, open_file)
+        open_file.close()
 
     data_train = Subset(d_dataset, train_idxs)
     data_val = Subset(d_dataset, val_idxs)
