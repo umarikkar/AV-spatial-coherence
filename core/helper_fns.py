@@ -4,7 +4,6 @@ import os
 import cv2
 
 
-
 def MakeFolders(sequence_path, video=False):
 
     import shutil
@@ -58,6 +57,8 @@ def SaveVideoFrames(data_path):
     dir_1 = np.array(['01','02','03','04','05','06','07','08','09','10','11'])
     dir_2 = np.array(['12','13','14','15','16','17','18','19','20','21','22'])
 
+    count2 = 0
+
     for sequence_name in os.listdir(vid_data_path):
         if not sequence_name=="README.txt":
             if sequence_name not in os.listdir(frame_data_path):
@@ -75,7 +76,7 @@ def SaveVideoFrames(data_path):
                     if rig == '01':
                         cam = dir_1[cam_idx]
                         if 'cam-'+cam not in os.listdir(os.path.join(frame_data_path, sequence_name, rig)):
-                            print(os.listdir(os.path.join(frame_data_path, sequence_name, rig)))
+                            # print(os.listdir(os.path.join(frame_data_path, sequence_name, rig)))
                             os.mkdir(os.path.join(frame_data_path, sequence_name, rig, 'cam-'+cam))
                         cam_save = cam
 
@@ -96,6 +97,7 @@ def SaveVideoFrames(data_path):
                         vidcap = cv2.VideoCapture(vid_path_cam)
                         success,image = vidcap.read()
                         count = 0
+                        count2 += 1
 
                         # print(image.shape)
 
@@ -109,7 +111,9 @@ def SaveVideoFrames(data_path):
                         vidcap.release()
 
                     else:
-                        print("already saved frames for sequence: {} rig: {} cam: {}  ".format(sequence_name, rig, cam))
+                        pass
+                        # print("already saved frames for sequence: {} rig: {} cam: {}  ".format(sequence_name, rig, cam))
 
+    print(count2)
     return
             

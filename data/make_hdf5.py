@@ -8,6 +8,8 @@ from core.dataset import dataset_from_hdf5, dataset_from_scratch
 from torch.utils.data import DataLoader, Subset
 import utils.utils as utils
 
+from tqdm import tqdm
+
 import matplotlib.pyplot as plt
 
 base_path = conf.input['project_path']
@@ -40,16 +42,10 @@ def main():
 
         total_size = len(d_dataset)
 
-        sz = 8
-
-        sub_idxs = torch.randint(low=0, high=len(d_dataset), size=(sz,))
-        d_subset = Subset(d_dataset, sub_idxs)
-
         data_loader = DataLoader(d_dataset, batch_size=1, shuffle=False, num_workers=4, pin_memory=True)
-        toy_loader = DataLoader(d_subset, batch_size=1, shuffle=False, num_workers=4, pin_memory=True)
 
         count = 0
-        for data in data_loader:
+        for data in tqdm(data_loader):
 
             print('count: {}/{}'.format('%s'%count, '%s'%total_size))
 
@@ -100,38 +96,42 @@ def main():
 
 
 if __name__ == "__main__":
+
     parser = argparse.ArgumentParser(description='Extract and save input features')
     parser.add_argument('--info', type=str, default='MultiChannel', metavar='S',
                         help='Add additional info for storing (default: ours)')
     args = parser.parse_args()
-    create_hdf5 = False
 
-    h5py_path = main()
+    create_hdf5 = True
 
-    data_all = dataset_from_hdf5(h5py_path)
-    data_loader = DataLoader(data_all, batch_size=4, shuffle=True, num_workers=0, pin_memory=True)
+    main()
 
-    for idx, data in enumerate(data_loader):
-        aud = data[0]
-        cam = data[1]
-        img = data[-1]
-        BS = aud.shape[0]
+    # h5py_path = main()
 
-        if idx==2:
-            print(aud.shape)
-            print(cam.shape)
-            print(img.shape)
-            # plt.figure()
-            # for i in range(16):
-            #     plt.subplot(4,4,i+1)
-            #     plt.imshow(aud[0,i,:,:], aspect='auto')
-            # plt.show()
-            plt.figure()
-            for i in range(BS):
-                plt.subplot(BS,1,i+1)
-                plt.imshow(img[i,0,:,:,:].permute(1,2,0), aspect='auto')
-            plt.show()
+    # data_all = dataset_from_hdf5(h5py_path)
+    # data_loader = DataLoader(data_all, batch_size=4, shuffle=True, num_workers=4, pin_memory=True)
+
+    # for idx, data in enumerate(data_loader):
+    #     aud = data[0]
+    #     cam = data[1]
+    #     img = data[-1]
+    #     BS = aud.shape[0]
+
+    #     if idx==2:
+    #         print(aud.shape)
+    #         print(cam.shape)
+    #         print(img.shape)
+    #         # plt.figure()
+    #         # for i in range(16):
+    #         #     plt.subplot(4,4,i+1)
+    #         #     plt.imshow(aud[0,i,:,:], aspect='auto')
+    #         # plt.show()
+    #         plt.figure()
+    #         for i in range(BS):
+    #             plt.subplot(BS,1,i+1)
+    #             plt.imshow(img[i,0,:,:,:].permute(1,2,0), aspect='auto')
+    #         plt.show()
             
-            break
+    #         break
 
 
