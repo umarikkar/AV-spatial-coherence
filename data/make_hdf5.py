@@ -1,16 +1,14 @@
 #!/usr/bin/python
-import torch
 import os
 import h5py, argparse
 from pathlib import Path
 import core.config as conf
-from core.dataset import dataset_from_hdf5, dataset_from_scratch
-from torch.utils.data import DataLoader, Subset
+from core.dataset import dataset_from_scratch
+from torch.utils.data import DataLoader
 import utils.utils as utils
 
 from tqdm import tqdm
 
-import matplotlib.pyplot as plt
 
 base_path = conf.input['project_path']
 
@@ -75,7 +73,7 @@ def main():
                 # f['all_frames'][-audio.shape[0]:] = audio
 
             #print("'features' chunk has shape:{}".format(f['features'].shape))
-            print("'features' chunk has shape:{}".format(f['features'].shape), file=open('%s/make_h5py_log.txt' % h5py_dir, "w"))
+            # print("'features' chunk has shape:{}".format(f['features'].shape), file=open('%s/make_h5py_log.txt' % h5py_dir, "w"))
             #print("'cams' chunk has shape:{}".format(f['cams'].shape))
             #print("'target_coords' chunk has shape:{}".format(f['target_coords'].shape))
             #print("'pseudo_labels' chunk has shape:{}".format(f['pseudo_labels'].shape))

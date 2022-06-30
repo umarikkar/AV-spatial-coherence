@@ -2,7 +2,6 @@
 import glob
 import os
 import random
-from email.mime import base
 from math import floor
 from pathlib import Path
 
@@ -36,43 +35,13 @@ def read_audio_file(sequence, train_or_test, rig, initial_time, base_path):
 
     sequence_path = os.path.join(base_path, 'data', 'RJDataset', 'audio', sequence, rig, '')
 
-    if conf.logmelspectro['get_gcc']:
+    if conf.logmelspectro['multi_mic']:
         if rig == '01':
             dir_idx = np.array(['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','16'])
-            """
-            # dir_idx = np.array(['01','02','03','04','05','06','07','08','09','10','11','12','13','15','16']) # 15 mics case
-            # dir_idx = np.array(['01','02','03','04','05','06','07','08','09','10','11','12','14','16']) # 14 mics case
-            # dir_idx = np.array(['01','02','03','04','05','06','07','08','09','10','11','12','16']) # 13 mics case
-            # dir_idx = np.array(['01','02','03','04','05','06','07','08','09','10','11','14']) # 12 mics case
-            # dir_idx = np.array(['01','02','03','04','05','06','07','08','09','10','11']) # 11 mics case
-            # dir_idx = np.array(['02','03','04','05','06','07','08','09','10','14']) # 10 mics case
-            # dir_idx = np.array(['02','03','04','05','06','07','08','09','10']) # 9 mics case
-            # dir_idx = np.array(['02','03','04','05','07','08','09','10']) # 8 mics case
-            # dir_idx = np.array(['02','03','05','06','07','09','10']) # 7 mics case
-            # dir_idx = np.array(['02','03','05','07','09','10']) # 6 mics case
-            # dir_idx = np.array(['03','05','06','07','09']) # 5 mics case
-            #dir_idx = np.array(['03', '05', '07', '09'])  # 4 mics case
-            # dir_idx = np.array(['03','06','09']) # 3 mics case
-            # dir_idx = np.array(['03','09']) # 2 mics case
-            """
+
         else:  # rig == '02'
             dir_idx = np.array(['23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38'])
-            """
-            # dir_idx = np.array(['23','24','25','26','27','28','29','30','31','32','33','34','35','37','38']) # 15 mics case
-            # dir_idx = np.array(['23','24','25','26','27','28','29','30','31','32','33','34','36','38']) # 14 mics case
-            # dir_idx = np.array(['23','24','25','26','27','28','29','30','31','32','33','34','38']) # 13 mics case
-            # dir_idx = np.array(['23','24','25','26','27','28','29','30','31','32','33','36']) # 12 mics case
-            # dir_idx = np.array(['23','24','25','26','27','28','29','30','31','32','33']) # 11 mics case
-            # dir_idx = np.array(['24','25','26','27','28','29','30','31','32','36']) # 10 mics case
-            # dir_idx = np.array(['24','25','26','27','28','29','30','31','32']) # 9 mics case
-            # dir_idx = np.array(['24','25','26','27','29','30','31','32']) # 8 mics case
-            # dir_idx = np.array(['24','25','27','28','29','31','32']) # 7 mics case
-            # dir_idx = np.array(['24','25','27','29','31','32']) # 6 mics case
-            # dir_idx = np.array(['25','27','28','29','31']) # 5 mics case
-            #dir_idx = np.array(['25', '27', '29', '31'])  # 4 mics case
-            # dir_idx = np.array(['25','28','31']) # 3 mics case
-            # dir_idx = np.array(['25','31']) # 2 mics case
-            """
+
     else:
         if rig == '01':
             dir_idx = np.array(['01'])
@@ -303,12 +272,12 @@ def get_train_val(multi_mic=conf.logmelspectro['multi_mic'], train_or_test='trai
 
     files = [file_train, file_val]
 
-    load_files = True
+    load_idxs = True
     
     for i,f in enumerate(files):
         if not os.path.exists(f):
             print('making new indexes')
-            load_files = False
+            load_idxs = False
             break
         else:
             print('getting pre-computed indexes')
@@ -320,7 +289,7 @@ def get_train_val(multi_mic=conf.logmelspectro['multi_mic'], train_or_test='trai
             open_file.close()
 
 
-    if not load_files:
+    if not load_idxs:
 
         rand_idxs = list(range(len(d_dataset)))
         random.shuffle(rand_idxs)
