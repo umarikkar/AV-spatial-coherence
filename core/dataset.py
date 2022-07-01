@@ -229,12 +229,16 @@ class dataset_from_hdf5(Dataset):
 
         if self.normalize:
             # Normalize feature
-            n_scaler_chan = self.mean.shape[0]
-            # for SALSA feature, only normalize the spectrogram channels
-            if n_scaler_chan < features.shape[0]:
-                features[:n_scaler_chan] = (features[:n_scaler_chan] - self.mean) / self.std
-            else:
-                features = (features - self.mean) / self.std
+            # z-norm
+            # f_mean = np.expand_dims(np.expand_dims(features.mean(axis=(1,2)), -1), -1)
+            # f_std = np.expand_dims(np.expand_dims(features.std(axis=(1,2)), -1), -1)
+            # features = (features - f_mean) / f_std
+
+            # 0-1 norm
+            f_max = np.expand_dims(features.max(axis=(1,2)), (-2,-1))
+            f_min = np.expand_dims(features.min(axis=(1,2)), (-2,-1))
+
+            features = (features - f_min) / (f_max - f_min)
 
         features = features.astype('float32')
         input_features = torch.from_numpy(features)
@@ -243,19 +247,27 @@ class dataset_from_hdf5(Dataset):
         return input_features, cam, imgs
     
 
-def get_train_val(multi_mic=conf.logmelspectro['multi_mic'], train_or_test='train', toy_params=conf.training_param['toy_params']):
 
+
+def get_train_val(multi_mic=conf.logmelspectro['multi_mic'], train_or_test='train', toy_params=conf.training_param['toy_params']):
+    """
+    Function to get train and validation sets. 
+    Precomputed indexes are available for the full dataset. 
+    Else, we need to compute the indexes randomly.
+    """
     base_path = conf.input['project_path']
 
 
-    mic_info = 'MultiChannel' if multi_mic else 'SingleChannel'
+    mic_info = 'MC' if multi_mic else 'SC'
     h5py_dir_str = os.path.join(base_path, 'data', 'h5py_%s' %mic_info,'')
     h5py_name = '%s_%s.h5' % (train_or_test, mic_info)
 
     h5py_path_str = os.path.join(h5py_dir_str, h5py_name)
     h5py_path = Path(h5py_path_str)
-    d_dataset = dataset_from_hdf5(h5py_path, augment=True)
+    d_dataset = dataset_from_hdf5(h5py_path, augment=True, normalize=True)
 
+
+    load_idxs= False
 
     if toy_params[0]:
         sz_train = toy_params[1]
@@ -264,29 +276,29 @@ def get_train_val(multi_mic=conf.logmelspectro['multi_mic'], train_or_test='trai
         rand_toy = list(range(sz_train + sz_val))
         random.shuffle(rand_toy)
         d_dataset = Subset(d_dataset, rand_toy)
-
+        
     # DATA LOADER INITIALISATION -----------------------------------------------------------------------------
+    else:
+        file_train = os.path.join(os.getcwd(), 'results','indexes', 'idxs_train.pkl')
+        file_val = os.path.join(os.getcwd(), 'results','indexes', 'idxs_val.pkl')
 
-    file_train = os.path.join(conf.filenames['net_folder_path'], 'idxs_train.pkl')
-    file_val = os.path.join(conf.filenames['net_folder_path'], 'idxs_val.pkl')
+        files = [file_train, file_val]
 
-    files = [file_train, file_val]
-
-    load_idxs = True
-    
-    for i,f in enumerate(files):
-        if not os.path.exists(f):
-            print('making new indexes')
-            load_idxs = False
-            break
-        else:
-            print('getting pre-computed indexes')
-            open_file = open(f, "rb")
-            if i==0:
-                train_idxs = pickle.load(open_file)
+        load_idxs = True
+        
+        for i,f in enumerate(files):
+            if not os.path.exists(f):
+                print('making new indexes')
+                load_idxs = False
+                break
             else:
-                val_idxs = pickle.load(open_file)
-            open_file.close()
+                print('getting pre-computed indexes')
+                open_file = open(f, "rb")
+                if i==0:
+                    train_idxs = pickle.load(open_file)
+                else:
+                    val_idxs = pickle.load(open_file)
+                open_file.close()
 
 
     if not load_idxs:
@@ -312,4 +324,4 @@ def get_train_val(multi_mic=conf.logmelspectro['multi_mic'], train_or_test='trai
     data_train = Subset(d_dataset, train_idxs)
     data_val = Subset(d_dataset, val_idxs)
 
-    return data_train, data_val
+    return data_train, data_val, d_dataset

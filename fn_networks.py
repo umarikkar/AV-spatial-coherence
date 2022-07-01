@@ -206,7 +206,10 @@ class MergeNet(nn.Module):
 
     def __init__(self, 
     heatmap=conf.dnn_arch['heatmap'], 
+    inference = conf.training_param['inference']
     ):
+        
+        self.inference = inference
 
         super().__init__()
         self.heatmap = heatmap
@@ -221,101 +224,32 @@ class MergeNet(nn.Module):
         self.conv1 = nn.Conv2d(128, 64, kernel_size=1)
         # self.dropout = nn.Dropout(p=0.5)
 
-
         self.conv_final = nn.Conv2d(64, 1, kernel_size=1)
         self.FC_final = nn.Linear(64, 2)
 
-    def forward(self, x, y, cam):
+    def forward(self, x_in, y_in, cam):
 
-        # features_ls = []
-        # features_ls.append((x, 'input image'))
+        x1 = self.VideoNet(x_in)                                                # 512 x 7 x 7 
+        y1 = self.AudioNet(y_in)                                                # 512 x H x W 
 
-        x = self.VideoNet(x)                                                # 512 x 7 x 7 
-        y = self.AudioNet(y)                                                # 512 x H x W 
+        x2 = self.VideoMerge(x1)                                              # 128 x 7 x 7 
+        y2 = self.AudioMerge(y1, cam_ID=cam).unsqueeze(-1).unsqueeze(-1)      # 128 x 1 x 1 
 
-        # features_ls.append((x, 'after img backbone'))
+        x2 = x2*y2                                                             # 128 x 7 x 7 
 
-        x = self.VideoMerge(x)                                              # 128 x 7 x 7 
-        y = self.AudioMerge(y, cam_ID=cam).unsqueeze(-1).unsqueeze(-1)      # 128 x 1 x 1 
+        x = self.conv1(x2)                                                   # 64 x 7 x 7 
 
-        # features_ls.append((x, 'after img subnet'))
-
-        x = x*y                                                             # 128 x 7 x 7 
-
-        # features_ls.append((x, 'after attention'))
-        # show_feature_map(features_ls)
-
-        x = self.conv1(x)                                                   # 64 x 7 x 7 
-
-        if self.heatmap:
-
-            x = self.conv_final(x)   
-            x = torch.mean(x, dim=1) # collapsing along dimension
-
-            h, w = x.shape[-2], x.shape[-1]
-            x_class = torch.mean(x.view(-1, h*w), dim=-1)
-            x_class = torch.sigmoid(x_class)
-
-            return x, x_class
-
-        else:
-            c = x.shape[1]
-            h, w = x.shape[-2], x.shape[-1]
-            x = torch.mean(x.view(-1,c, h*w), dim=-1)
-            # x = self.dropout(x)
-            x = self.FC_final(x)
-
-            return x
-
-
-
-class MergeNet_eval(nn.Module):
-
-    def __init__(self, 
-    heatmap=conf.dnn_arch['heatmap'], 
-    ):
-
-        super().__init__()
-        self.heatmap = heatmap
-        
-        self.VideoNet = BackboneVid()
-        self.AudioNet = BackboneAud()
-
-        self.VideoMerge = SubnetVid()
-        self.AudioMerge = SubnetAud()
-        
-        self.BN = nn.BatchNorm2d(num_features=128)
-        self.conv1 = nn.Conv2d(128, 64, kernel_size=1)
-        # self.dropout = nn.Dropout(p=0.5)
-
-
-        self.conv_final = nn.Conv2d(64, 1, kernel_size=1)
-        self.FC_final = nn.Linear(64, 2)
-
-    def forward(self, x, y, cam):
-
-        features_ls = []
-        features_ls.append((x, 'input image'))
-
-        x = self.VideoNet(x)                                                # 512 x 7 x 7 
-        y = self.AudioNet(y)                                                # 512 x H x W 
-
-        features_ls.append((x, 'after img backbone'))
-
-        x = self.VideoMerge(x)                                              # 128 x 7 x 7 
-        y = self.AudioMerge(y, cam_ID=cam).unsqueeze(-1).unsqueeze(-1)      # 128 x 1 x 1 
-
-        features_ls.append((x, 'after img subnet'))
-
-        x = x*y                                                             # 128 x 7 x 7 
-
-        features_ls.append((x, 'after attention'))
-        show_feature_map(features_ls)
-
-        x = self.conv1(x)                                                   # 64 x 7 x 7 
+        if self.inference:
+            features_ls = [
+                (x_in, 'input image'),
+                (x1, 'after img backbone'),
+                (x2, 'after attention'),
+                (x, 'heatmap')
+            ]           
+            show_feature_map(features_ls)
 
         if self.heatmap:
-
+ 
             x = self.conv_final(x)   
             x = torch.mean(x, dim=1) # collapsing along dimension
 

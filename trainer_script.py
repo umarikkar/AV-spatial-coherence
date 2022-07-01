@@ -24,7 +24,7 @@ def main():
     random.seed(5)
     multi_mic = conf.logmelspectro['multi_mic']
     net = MergeNet()
-    epochs = 40
+    epochs = 24
     optimiser = optim.Adam(net.parameters(), lr=1e-4)
     loss_fn = nn.BCELoss() if conf.dnn_arch['heatmap'] else nn.CrossEntropyLoss()
 
@@ -45,7 +45,7 @@ def main():
 
     # # ---------------------------------------------------------
 
-    data_train, data_val = get_train_val(multi_mic=multi_mic, train_or_test='train')
+    data_train, data_val, data_all = get_train_val(multi_mic=multi_mic, train_or_test='train')
 
     train_loader = DataLoader(data_train, batch_size=16, shuffle=True, num_workers=0, pin_memory=True)
     val_loader = DataLoader(data_val, batch_size=16, shuffle=False, num_workers=0, pin_memory=True)

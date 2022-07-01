@@ -1,0 +1,8 @@
+2022-07-01 00:29:37.231812 Epoch 1, Train loss 0.5635, Train acc 71.02%, Val loss 0.511, Val acc 75.34%
+2022-07-01 00:42:05.883307 Epoch 2, Train loss 0.4443, Train acc 79.17%, Val loss 0.4682, Val acc 78.77%
+2022-07-01 00:54:29.106627 Epoch 3, Train loss 0.3947, Train acc 82.52%, Val loss 0.3857, Val acc 83.38%
+2022-07-01 01:06:46.220757 Epoch 4, Train loss 0.3593, Train acc 85.05%, Val loss 0.3561, Val acc 84.55%
+2022-07-01 01:18:50.385443 Epoch 5, Train loss 0.3212, Train acc 87.2%, Val loss 0.3235, Val acc 86.74%
+2022-07-01 01:30:56.477986 Epoch 6, Train loss 0.2864, Train acc 89.11%, Val loss 0.299, Val acc 89.07%
+2022-07-01 01:44:19.869354 Epoch 7, Train loss 0.2532, Train acc 90.76%, Val loss 0.3054, Val acc 88.82%
+2022-07-01 01:57:37.116982 Epoch 8, Train loss 0.2328, Train acc 91.65%, Val loss 0.2669, Val acc 90.55%

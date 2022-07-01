@@ -3,6 +3,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import argparse
 
 import os
 
@@ -20,15 +21,20 @@ def set_filename():
         net_size = 'full'
 
     if not dnn_arch['vid_custom']:
-        if not dnn_arch['vid_freeze']:
-            fol_name = mic_name + '_' + net_size + '_vgg_flex' # MultiChannel_sz_vgg_flex
+        if dnn_arch['vid_pretrained']:
+            if not dnn_arch['vid_freeze']:
+                fol_name = mic_name + '_' + net_size + '_vgg_flex' # MultiChannel_sz_vgg_flex
+            else:
+                fol_name = mic_name + '_' + net_size + '_vgg_freeze' # MultiChannel_sz_vgg_freeze
         else:
-            fol_name = mic_name + '_' + net_size + '_vgg_freeze' # MultiChannel_sz_vgg_freeze
+            fol_name = mic_name + '_' + net_size + '_vgg' # MultiChannel_sz_vgg_flex
     else:
         fol_name = mic_name + '_' + net_size # MultiChannel_sz
 
     if dnn_arch['heatmap']:
         fol_name = fol_name + '_BCE'
+
+    fol_name = fol_name + '_aud_norm'
 
 
     file_path = os.path.join(os.getcwd(), 'results', 'checkpoints', fol_name)  # results/checkpoints/MultiChannel_sz
@@ -42,7 +48,7 @@ def set_filename():
         if not os.path.exists(img_path):
             os.mkdir(img_path)
 
-    print(file_path)
+    print('network path', file_path)
 
     return file_path
 
@@ -59,10 +65,10 @@ input = {
 }
 
 dnn_arch = {
-    'heatmap':False,
+    'heatmap':True,
 
-    'vid_custom':False,
-    'vid_pretrained': True,
+    'vid_custom':True,
+    'vid_pretrained': False,
     'vid_freeze':False,
 
     'aud_custom': True,      
@@ -83,9 +89,11 @@ training_param = {
     'epochs': 50, # this is used if user does not provide the epoch number with the parser
     'batch_size': 32,
     'frame_len_samples': input['frame_len_sec'] * input['sr'], # number of audio samples in 2 sec
-    'frame_vid_samples': 1,
+    'frame_vid_samples': 5,
 
-    'toy_params': (True, 1024),
+    'toy_params': (False, 32),
+
+    'inference': False,
 
     #'input_norm': 'freq_wise', # choose between: 'freq_wise', 'global', or None
     #'step_size':,
@@ -93,11 +101,10 @@ training_param = {
 }
 
 logmelspectro = {
-    'get_gcc':  False,
-    'multi_mic': False,
+    'get_gcc':  True,
+    'multi_mic': True,
     'mfcc_azimuth_only': True, # False for using all the 89 look dir, True only the 15 central-horizontal look dir
     'winlen': 512, # samples
-    'winlen': 1024,
     'hoplen': 100, # samples
     'numcep': 64, # number of cepstrum bins to return
     'n_fft': 512, #fft lenght
@@ -108,6 +115,6 @@ logmelspectro = {
 
 filenames = {
     'net_folder_path': set_filename(),
-    'train_val': 'val',
+    'train_val': 'train',
 }
 

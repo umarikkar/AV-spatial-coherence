@@ -1,13 +1,15 @@
 #!/usr/bin/python
+import torch
 import os
 import h5py, argparse
 from pathlib import Path
 import core.config as conf
-from core.dataset import dataset_from_scratch
+from core.dataset import dataset_from_hdf5, dataset_from_scratch
 from torch.utils.data import DataLoader
 import utils.utils as utils
 
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 
 base_path = conf.input['project_path']
@@ -43,7 +45,7 @@ def main():
         data_loader = DataLoader(d_dataset, batch_size=1, shuffle=False, num_workers=4, pin_memory=True)
 
         count = 0
-        for data in tqdm(data_loader):
+        for data in data_loader:
 
             print('count: {}/{}'.format('%s'%count, '%s'%total_size))
 
@@ -73,7 +75,7 @@ def main():
                 # f['all_frames'][-audio.shape[0]:] = audio
 
             #print("'features' chunk has shape:{}".format(f['features'].shape))
-            # print("'features' chunk has shape:{}".format(f['features'].shape), file=open('%s/make_h5py_log.txt' % h5py_dir, "w"))
+            print("'features' chunk has shape:{}".format(f['features'].shape), file=open('%s/make_h5py_log.txt' % h5py_dir, "w"))
             #print("'cams' chunk has shape:{}".format(f['cams'].shape))
             #print("'target_coords' chunk has shape:{}".format(f['target_coords'].shape))
             #print("'pseudo_labels' chunk has shape:{}".format(f['pseudo_labels'].shape))
@@ -96,7 +98,7 @@ def main():
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Extract and save input features')
-    parser.add_argument('--info', type=str, default='MultiChannel', metavar='S',
+    parser.add_argument('--info', type=str, default='MC_seq', metavar='S',
                         help='Add additional info for storing (default: ours)')
     args = parser.parse_args()
 
@@ -107,29 +109,24 @@ if __name__ == "__main__":
     # h5py_path = main()
 
     # data_all = dataset_from_hdf5(h5py_path)
-    # data_loader = DataLoader(data_all, batch_size=4, shuffle=True, num_workers=4, pin_memory=True)
+    # data_loader = DataLoader(data_all, batch_size=4, shuffle=True, num_workers=0, pin_memory=True)
 
-    # for idx, data in enumerate(data_loader):
-    #     aud = data[0]
-    #     cam = data[1]
-    #     img = data[-1]
-    #     BS = aud.shape[0]
+    # rand_num = int(torch.randint(1, high=len(data_all), size=(1,1)))
 
-    #     if idx==2:
-    #         print(aud.shape)
-    #         print(cam.shape)
-    #         print(img.shape)
-    #         # plt.figure()
-    #         # for i in range(16):
-    #         #     plt.subplot(4,4,i+1)
-    #         #     plt.imshow(aud[0,i,:,:], aspect='auto')
-    #         # plt.show()
-    #         plt.figure()
-    #         for i in range(BS):
-    #             plt.subplot(BS,1,i+1)
-    #             plt.imshow(img[i,0,:,:,:].permute(1,2,0), aspect='auto')
-    #         plt.show()
-            
-    #         break
+    # data = data_all[rand_num]
+
+    # aud = data[0]
+    # cam = data[1]
+    # img = data[-1]
+
+    # num_imgs = aud.shape[0]
+
+    # plt.figure()
+    # for i in range(num_imgs):
+    #     plt.subplot(num_imgs/4,4,i+1)
+    #     plt.imshow(aud[i,:,:], aspect='auto')
+    # plt.show()
+
+
 
 

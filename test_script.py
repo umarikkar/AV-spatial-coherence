@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 import core.config as conf
 import utils.utils as utils
 from core.dataset import get_train_val
-from fn_networks import MergeNet, MergeNet_eval
+from fn_networks import MergeNet
 from fn_trainer import Trainer
 
 
@@ -22,12 +22,10 @@ def main():
 
     random.seed(5)
     multi_mic = conf.logmelspectro['multi_mic']
-    net = MergeNet_eval()
-    epochs = 40
+    net = MergeNet(inference=True)
     optimiser = optim.Adam(net.parameters(), lr=1e-4)
-    loss_fn = nn.BCELoss() if conf.dnn_arch['heatmap'] else nn.CrossEntropyLoss()
 
-    data_train, data_val = get_train_val(multi_mic=multi_mic, train_or_test='train')
+    data_train, data_val, _ = get_train_val(multi_mic=multi_mic, train_or_test='train')
 
     train_loader = DataLoader(data_train, batch_size=1, shuffle=True, num_workers=0, pin_memory=True)
     val_loader = DataLoader(data_val, batch_size=1, shuffle=False, num_workers=0, pin_memory=True)
@@ -40,7 +38,7 @@ def main():
     fol_name = conf.filenames['net_folder_path']
 
     print(fol_name)
-    ep = 36
+    ep = 24
 
     net_name = 'net_ep_%s.pt'%ep
     net_path = os.path.join(fol_name, net_name)
@@ -62,7 +60,7 @@ def main():
         loader = val_loader
 
     net = net.to(device=device)
-
+    ls = []
     count = 0
     for data in loader:
         count +=1
@@ -71,10 +69,12 @@ def main():
         cam = data[1].to(device=device)
         img = data[2].squeeze(1).to(device=device)
         
-        out = net(img, aud, cam)
-
+        out = net(img, aud, cam)[1].cpu().detach().numpy()
+        ls.append(out)
         if count==10:
             break
+    # print(np.array(ls))
+
     pass
 
 
