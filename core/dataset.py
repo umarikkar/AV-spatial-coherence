@@ -30,6 +30,7 @@ import core.config as conf
 base_path = conf.input['project_path']
 fps = conf.input['fps']
 
+# ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 def read_audio_file(sequence, train_or_test, rig, initial_time, base_path):
 
@@ -65,10 +66,10 @@ def read_audio_file(sequence, train_or_test, rig, initial_time, base_path):
     audio = np.transpose(np.array(audio))
     return audio, sr
 
+# ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 def generate_audio_tensor(audio, sr, multi_mic = conf.logmelspectro['multi_mic'], get_gcc=conf.logmelspectro['get_gcc']):
 
-    ## ======================= compute log mel features ===================
     winlen = conf.logmelspectro['winlen']
     hoplen = conf.logmelspectro['hoplen']
     numcep = conf.logmelspectro['numcep']
@@ -98,6 +99,7 @@ def generate_audio_tensor(audio, sr, multi_mic = conf.logmelspectro['multi_mic']
 
     return tensor
 
+# ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 def read_video_file(sequence, train_or_test, rig, cam_vid, initial_time, base_path):
 
@@ -137,6 +139,7 @@ def read_video_file(sequence, train_or_test, rig, cam_vid, initial_time, base_pa
     return im2
 
 
+# ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 class dataset_from_scratch(Dataset):
     def __init__(self, csv_file_path, train_or_test, normalize=False, augment=False, mean=None, std=None):
@@ -157,7 +160,6 @@ class dataset_from_scratch(Dataset):
     
     def __getitem__(self, audio_seg):
 
-
         # print(audio_seg)
         full_name = self.csv_list[self.frame_idx_list[audio_seg]][0]
         # print(full_name)
@@ -167,7 +169,6 @@ class dataset_from_scratch(Dataset):
         initial_time = np.float(self.csv_list[self.frame_idx_list[audio_seg]][1])
 
         cam_vid = str(cam)
-
 
         if cam < 12:
             rig = '01'
@@ -188,52 +189,53 @@ class dataset_from_scratch(Dataset):
 
         # ## -------------------------------------------------------------------------
 
-        if self.normalize:
-            # Normalize feature
-            n_scaler_chan = self.mean.shape[0]
-            # for SALSA feature, only normalize the spectrogram channels
-            if n_scaler_chan < tensor.shape[0]:
-                tensor[:n_scaler_chan] = (tensor[:n_scaler_chan] - self.mean) / self.std
-            else:
-                tensor = (tensor - self.mean) / self.std
-
         tensor = tensor.astype('float32')
         input_features = torch.from_numpy(tensor)
 
-
-        if self.train_or_test == 'train':
-            return input_features, cam, sequence, img_tensor
-        else:  # == 'test
-            return input_features, cam, full_name, initial_time
+        return input_features, cam, img_tensor, full_name, initial_time
 
         
-
+# ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 class dataset_from_hdf5(Dataset):
-    def __init__(self, h5py_path, normalize=False, augment=False, mean=None, std=None):
+
+    def __init__(self, h5py_path, 
+            normalize=True, 
+            mean=None, 
+            std=None, 
+            seq=conf.training_param['frame_seq'], 
+            t_image = transforms.Compose([]),
+            t_audio = transforms.Compose([]),
+        ):
 
         self.h5_file = h5py.File(h5py_path, 'r')
         self.normalize = normalize
-        self.augment = augment
         self.mean = mean
         self.std = std
+        self.seq = seq 
+        self.t_image = t_image
+        self.t_audio = t_audio
 
     def __len__(self):
         return int((self.h5_file['features'].shape[0]) / 1)
 
     def __getitem__(self, audio_seg):
 
+        # actual data
         features = self.h5_file['features'][audio_seg]
-        cam = self.h5_file['cams'][audio_seg]
+        cam = torch.from_numpy(self.h5_file['cams'][audio_seg])
         imgs = torch.from_numpy(self.h5_file['img_frames'][audio_seg])
 
-        if self.normalize:
-            # Normalize feature
-            # z-norm
-            # f_mean = np.expand_dims(np.expand_dims(features.mean(axis=(1,2)), -1), -1)
-            # f_std = np.expand_dims(np.expand_dims(features.std(axis=(1,2)), -1), -1)
-            # features = (features - f_mean) / f_std
+        # metadata
+        full_name = self.h5_file['sequence'][audio_seg]
+        init_time = self.h5_file['initial_time'][audio_seg]
 
+        # getting sequences only or full samples
+        if not self.seq:
+            rand_num = np.random.randint(imgs.shape[0])
+            imgs = imgs[rand_num,:,:,:].unsqueeze(0)
+
+        if self.normalize:
             # 0-1 norm
             f_max = np.expand_dims(features.max(axis=(1,2)), (-2,-1))
             f_min = np.expand_dims(features.min(axis=(1,2)), (-2,-1))
@@ -243,11 +245,13 @@ class dataset_from_hdf5(Dataset):
         features = features.astype('float32')
         input_features = torch.from_numpy(features)
 
-        # return input_features, cams, target_coords, pseudo_labels, speech_activity, sequence
-        return input_features, cam, imgs
+        input_features[-1,:,:] = self.t_audio(input_features[-1,:,:].unsqueeze(0)).squeeze(0)
+        imgs = self.t_image(imgs)
+
+        return input_features, cam, imgs, full_name, init_time
     
 
-
+# ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 def get_train_val(multi_mic=conf.logmelspectro['multi_mic'], train_or_test='train', toy_params=conf.training_param['toy_params']):
     """
@@ -259,13 +263,25 @@ def get_train_val(multi_mic=conf.logmelspectro['multi_mic'], train_or_test='trai
 
 
     mic_info = 'MC' if multi_mic else 'SC'
+    mic_info = mic_info + '_seq'
+
+
     h5py_dir_str = os.path.join(base_path, 'data', 'h5py_%s' %mic_info,'')
     h5py_name = '%s_%s.h5' % (train_or_test, mic_info)
 
     h5py_path_str = os.path.join(h5py_dir_str, h5py_name)
     h5py_path = Path(h5py_path_str)
-    d_dataset = dataset_from_hdf5(h5py_path, augment=True, normalize=True)
-
+    
+    if train_or_test=='train':
+        d_dataset = dataset_from_hdf5(h5py_path, 
+                                    normalize=True, 
+                                    t_audio=conf.data_param['t_audio'], 
+                                    t_image=conf.data_param['t_image'],
+                                    )
+    else:
+        d_dataset = dataset_from_hdf5(h5py_path, 
+                            normalize=True, 
+                            )
 
     load_idxs= False
 

@@ -267,3 +267,59 @@ class MergeNet(nn.Module):
             x = self.FC_final(x)
 
             return x
+
+
+class AVOL_Net(nn.Module):
+
+    def __init__(self, 
+    heatmap=conf.dnn_arch['heatmap'], 
+    inference = conf.training_param['inference']
+    ):
+        
+        self.inference = inference
+
+        super().__init__()
+        self.heatmap = heatmap
+        
+        self.VideoNet = models_vision.vgg11_bn(pretrained=True).features[0:28]
+        self.AudioNet = BackboneAud()
+
+        self.VideoMerge = SubnetVid()
+        self.AudioMerge = SubnetAud()
+
+        self.conv_final = nn.Conv2d(1, 1, kernel_size=1)
+
+
+    def forward(self, imgs=torch.randn((1,1,224,224)), audio=torch.randn((1,16,960,64)), cam=torch.randn((1,11))):
+
+        id=1
+
+        img = imgs.squeeze(1)[id].permute(1,2,0).detach().numpy()
+
+
+        plt.figure()
+        plt.subplot(131)
+        plt.imshow(img)
+        
+
+
+        x1 = self.VideoNet(imgs.squeeze(1))                                     # 512 x 14 x 14
+        y1 = self.AudioNet(audio)                                               # 512 x H x W 
+
+        x2 = self.VideoMerge(x1)                                                # 128 x 14 x 14 
+        y2 = self.AudioMerge(y1, cam_ID=cam).unsqueeze(-1).unsqueeze(-1)        # 128 x 1 x 1 
+
+        x2 = (x2*y2).mean(dim=1)                                                # 1 x 14 x 14 
+
+        plt.subplot(132)
+        plt.imshow(x2[id].detach().numpy())
+
+        x_map = torch.sigmoid(x2)                                               # 1 x 14 x 14 
+
+        plt.subplot(133)
+        plt.imshow(x_map[id].detach().numpy())
+        plt.show()
+
+        x_class = x_map.mean()
+
+        return x_class, x_map

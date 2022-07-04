@@ -7,6 +7,8 @@ import argparse
 
 import os
 
+from torchvision import transforms
+
 #mean_vector = torch.load(input['project_path'] + 'output/test/mean_vector.pt')
 #std_vector = torch.load(input['project_path'] + 'output/test/std_vector.pt')
 
@@ -20,21 +22,25 @@ def set_filename():
     else:
         net_size = 'full'
 
-    if not dnn_arch['vid_custom']:
-        if dnn_arch['vid_pretrained']:
-            if not dnn_arch['vid_freeze']:
-                fol_name = mic_name + '_' + net_size + '_vgg_flex' # MultiChannel_sz_vgg_flex
+    if not dnn_arch['AVOL']:
+
+        if not dnn_arch['vid_custom']:
+            if dnn_arch['vid_pretrained']:
+                if not dnn_arch['vid_freeze']:
+                    fol_name = mic_name + '_' + net_size + '_vgg_flex' # MultiChannel_sz_vgg_flex
+                else:
+                    fol_name = mic_name + '_' + net_size + '_vgg_freeze' # MultiChannel_sz_vgg_freeze
             else:
-                fol_name = mic_name + '_' + net_size + '_vgg_freeze' # MultiChannel_sz_vgg_freeze
+                fol_name = mic_name + '_' + net_size + '_vgg' # MultiChannel_sz_vgg_flex
         else:
-            fol_name = mic_name + '_' + net_size + '_vgg' # MultiChannel_sz_vgg_flex
+            fol_name = mic_name + '_' + net_size # MultiChannel_sz
+
+        if dnn_arch['heatmap']:
+            fol_name = fol_name + '_BCE'
+
     else:
-        fol_name = mic_name + '_' + net_size # MultiChannel_sz
 
-    if dnn_arch['heatmap']:
-        fol_name = fol_name + '_BCE'
-
-    fol_name = fol_name + '_aud_norm'
+        fol_name = mic_name + '_' + net_size + '_AVOL'
 
 
     file_path = os.path.join(os.getcwd(), 'results', 'checkpoints', fol_name)  # results/checkpoints/MultiChannel_sz
@@ -60,25 +66,22 @@ input = {
     'fps': 30,
     'sr': 48000, # 48 kHz
     'frame_len_sec': 2, # seconds
-    'frame_step_train': 1, #seconds
-    'frame_step_test': 2, #seconds
+    'frame_step_train': 1, #seconds, has overlaps
+    'frame_step_test': 2, #seconds, no overlaps
 }
 
 dnn_arch = {
     'heatmap':True,
 
-    'vid_custom':True,
-    'vid_pretrained': False,
-    'vid_freeze':False,
+    'vid_custom':False,
+    'vid_pretrained': True,
+    'vid_freeze':True,
 
     'aud_custom': True,      
     'aud_pretrained': False,
     'aud_freeze': False,
-}
 
-beamformer = {
-    'num_look_dir': 89,
-    'mat_file': 'SD_BeamformingWeights.mat', # mat file containing BF weights
+    'AVOL': True, 
 }
 
 training_param = {
@@ -89,6 +92,8 @@ training_param = {
     'epochs': 50, # this is used if user does not provide the epoch number with the parser
     'batch_size': 32,
     'frame_len_samples': input['frame_len_sec'] * input['sr'], # number of audio samples in 2 sec
+
+    'frame_seq': False,
     'frame_vid_samples': 5,
 
     'toy_params': (False, 32),
@@ -98,6 +103,20 @@ training_param = {
     #'input_norm': 'freq_wise', # choose between: 'freq_wise', 'global', or None
     #'step_size':,
     #'gamma': ,
+}
+
+data_param = {
+
+    't_image' : transforms.Compose([
+        transforms.ColorJitter((0.6, 1.4), (0.6, 1.4), (0.6, 1.4), (-0.2, 0.2)),
+        transforms.RandomGrayscale(0.2),
+        transforms.RandomInvert(p=0.5),
+        ]) ,
+
+    't_audio' : transforms.Compose([
+        transforms.RandomAutocontrast(p=0.5),
+        transforms.RandomAdjustSharpness(2),
+        ])
 }
 
 logmelspectro = {
