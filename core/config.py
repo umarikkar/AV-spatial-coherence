@@ -81,7 +81,7 @@ dnn_arch = {
     'aud_pretrained': False,
     'aud_freeze': False,
 
-    'AVOL': True, 
+    'AVOL': False, 
 }
 
 training_param = {
@@ -96,7 +96,7 @@ training_param = {
     'frame_seq': False,
     'frame_vid_samples': 5,
 
-    'toy_params': (False, 32),
+    'toy_params': (False, 1024),
 
     'inference': False,
 

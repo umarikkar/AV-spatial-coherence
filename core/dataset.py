@@ -245,15 +245,15 @@ class dataset_from_hdf5(Dataset):
         features = features.astype('float32')
         input_features = torch.from_numpy(features)
 
-        input_features[-1,:,:] = self.t_audio(input_features[-1,:,:].unsqueeze(0)).squeeze(0)
-        imgs = self.t_image(imgs)
+        # input_features[-1,:,:] = self.t_audio(input_features[-1,:,:].unsqueeze(0)).squeeze(0)
+        # imgs = self.t_image(imgs)
 
         return input_features, cam, imgs, full_name, init_time
     
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-def get_train_val(multi_mic=conf.logmelspectro['multi_mic'], train_or_test='train', toy_params=conf.training_param['toy_params']):
+def get_train_val(multi_mic=conf.logmelspectro['multi_mic'], train_or_test='train', toy_params=conf.training_param['toy_params'], sequences='all'):
     """
     Function to get train and validation sets. 
     Precomputed indexes are available for the full dataset. 
@@ -262,9 +262,7 @@ def get_train_val(multi_mic=conf.logmelspectro['multi_mic'], train_or_test='trai
     base_path = conf.input['project_path']
 
 
-    mic_info = 'MC' if multi_mic else 'SC'
-    mic_info = mic_info + '_seq'
-
+    mic_info = 'MC_seq' if multi_mic else 'SC_seq'
 
     h5py_dir_str = os.path.join(base_path, 'data', 'h5py_%s' %mic_info,'')
     h5py_name = '%s_%s.h5' % (train_or_test, mic_info)
@@ -275,14 +273,25 @@ def get_train_val(multi_mic=conf.logmelspectro['multi_mic'], train_or_test='trai
     if train_or_test=='train':
         d_dataset = dataset_from_hdf5(h5py_path, 
                                     normalize=True, 
-                                    t_audio=conf.data_param['t_audio'], 
-                                    t_image=conf.data_param['t_image'],
+                                    # t_audio=conf.data_param['t_audio'], 
+                                    # t_image=conf.data_param['t_image'],
                                     )
     else:
         d_dataset = dataset_from_hdf5(h5py_path, 
                             normalize=True, 
                             )
+        if sequences != 'all':
+            idx_list = []
+            for (idx, data) in enumerate(d_dataset):
+                # print(data[3])
+                word = data[3].decode("utf-8")
+                word = word[:word.find('-cam')]
+                if word == sequences:
+                    idx_list.append(idx)
+                
+            d_dataset = Subset(d_dataset, idx_list)
 
+    # DATA LOADER INITIALISATION -----------------------------------------------------------------------------
     load_idxs= False
 
     if toy_params[0]:
@@ -292,9 +301,8 @@ def get_train_val(multi_mic=conf.logmelspectro['multi_mic'], train_or_test='trai
         rand_toy = list(range(sz_train + sz_val))
         random.shuffle(rand_toy)
         d_dataset = Subset(d_dataset, rand_toy)
-        
-    # DATA LOADER INITIALISATION -----------------------------------------------------------------------------
-    else:
+    
+    elif sequences == 'all':
         file_train = os.path.join(os.getcwd(), 'results','indexes', 'idxs_train.pkl')
         file_val = os.path.join(os.getcwd(), 'results','indexes', 'idxs_val.pkl')
 
@@ -315,6 +323,8 @@ def get_train_val(multi_mic=conf.logmelspectro['multi_mic'], train_or_test='trai
                 else:
                     val_idxs = pickle.load(open_file)
                 open_file.close()
+    else:
+        pass
 
 
     if not load_idxs:

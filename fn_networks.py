@@ -17,7 +17,6 @@ def init_weights(m):
     if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
         torch.nn.init.xavier_uniform_(m.weight)
 
-
 # SHOW FEATURE MAPS
 
 def show_feature_map(x_list, show=False, savefile=True):
@@ -105,7 +104,8 @@ class BackboneVid(nn.Module):
         super().__init__()
 
         if not custom:
-            self.net = models_vision.vgg11(pretrained=pretrained).features
+            # self.net = models_vision.vgg11(pretrained=pretrained).features
+            self.net = models_vision.vgg11(pretrained=pretrained).features[0:20]
             print('Pretrained VGG11 for Imgs')
             for layer in self.net:
                 if isinstance(layer, nn.Conv2d):
@@ -120,7 +120,6 @@ class BackboneVid(nn.Module):
         x = self.net(x)  # returns a (* , 512 , h , w) tensor.
             
         return x
-
 
 
 class BackboneAud(nn.Module):
@@ -146,8 +145,6 @@ class BackboneAud(nn.Module):
         x = self.net(x)  # returns a (* , 512 , h , w) tensor.
             
         return x
-
-
 
 
 # MERGING FUNCTIONS --------------------------------------------------------------------------------------------------------------------------
@@ -257,7 +254,7 @@ class MergeNet(nn.Module):
             x_class = torch.mean(x.view(-1, h*w), dim=-1)
             x_class = torch.sigmoid(x_class)
 
-            return x, x_class
+            return x_class, x
 
         else:
             c = x.shape[1]
@@ -281,27 +278,26 @@ class AVOL_Net(nn.Module):
         super().__init__()
         self.heatmap = heatmap
         
-        self.VideoNet = models_vision.vgg11_bn(pretrained=True).features[0:28]
+        self.VideoNet = models_vision.vgg11(pretrained=True).features[0:20]
+
+        for layer in self.VideoNet:
+                if isinstance(layer, nn.Conv2d):
+                    layer.requires_grad_ = False
+
         self.AudioNet = BackboneAud()
 
         self.VideoMerge = SubnetVid()
         self.AudioMerge = SubnetAud()
 
-        self.conv_final = nn.Conv2d(1, 1, kernel_size=1)
-
+        self.conv_final = nn.Conv2d(1,1,kernel_size=1)
 
     def forward(self, imgs=torch.randn((1,1,224,224)), audio=torch.randn((1,16,960,64)), cam=torch.randn((1,11))):
 
-        id=1
-
-        img = imgs.squeeze(1)[id].permute(1,2,0).detach().numpy()
-
-
-        plt.figure()
-        plt.subplot(131)
-        plt.imshow(img)
-        
-
+        # id=1
+        # img = imgs.squeeze(1)[id].permute(1,2,0).cpu().detach().numpy()
+        # plt.figure()
+        # plt.subplot(131)
+        # plt.imshow(img)
 
         x1 = self.VideoNet(imgs.squeeze(1))                                     # 512 x 14 x 14
         y1 = self.AudioNet(audio)                                               # 512 x H x W 
@@ -309,17 +305,19 @@ class AVOL_Net(nn.Module):
         x2 = self.VideoMerge(x1)                                                # 128 x 14 x 14 
         y2 = self.AudioMerge(y1, cam_ID=cam).unsqueeze(-1).unsqueeze(-1)        # 128 x 1 x 1 
 
-        x2 = (x2*y2).mean(dim=1)                                                # 1 x 14 x 14 
+        x2 = (x2*y2).mean(dim=1).unsqueeze(1)                                   # 1 x 14 x 14 
 
-        plt.subplot(132)
-        plt.imshow(x2[id].detach().numpy())
+        x2 = torch.relu(self.conv_final(x2)).squeeze(1)
+
+        # plt.subplot(132)
+        # plt.imshow(x2[id].cpu().detach().numpy())
 
         x_map = torch.sigmoid(x2)                                               # 1 x 14 x 14 
 
-        plt.subplot(133)
-        plt.imshow(x_map[id].detach().numpy())
-        plt.show()
+        # plt.subplot(133)
+        # plt.imshow(x_map[id].cpu().detach().numpy())
+        # plt.show()
 
-        x_class = x_map.mean()
+        x_class = torch.amax(x_map, (1,2))
 
         return x_class, x_map

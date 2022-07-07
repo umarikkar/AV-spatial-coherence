@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 
 base_path = conf.input['project_path']
 
-train_or_test = 'train'
+train_or_test = 'test'
 csv_file = os.path.join(base_path, 'data', 'csv', train_or_test + '.csv')
 # csv_file = base_path + 'data/csv/' + train_or_test + '.csv'
 
@@ -44,7 +44,7 @@ def main():
 
         total_size = len(d_dataset)
 
-        data_loader = DataLoader(d_dataset, batch_size=1, shuffle=False, num_workers=8, pin_memory=True)
+        data_loader = DataLoader(d_dataset, batch_size=1, shuffle=False, num_workers=4, pin_memory=True)
 
         count = 0
         for data in data_loader:
@@ -119,31 +119,31 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    create_hdf5 = False
+    create_hdf5 = True
 
     h5py_path = main()
 
-    data_all = dataset_from_hdf5(h5py_path)
-    data_loader = DataLoader(data_all, batch_size=4, shuffle=True, num_workers=0, pin_memory=True)
+    # data_all = dataset_from_hdf5(h5py_path)
+    # data_loader = DataLoader(data_all, batch_size=4, shuffle=True, num_workers=0, pin_memory=True)
 
-    rand_num = int(torch.randint(1, high=len(data_all), size=(1,1)))
+    # rand_num = int(torch.randint(1, high=len(data_all), size=(1,1)))
 
-    data = data_all[rand_num]
+    # data = data_all[rand_num]
 
-    aud = data[0]
-    cam = data[1]
-    img = data[2]
+    # aud = data[0]
+    # cam = data[1]
+    # img = data[2]
 
-    num_imgs = aud.shape[0]
+    # num_imgs = aud.shape[0]
 
-    for d in data:
-        print(d.shape)
+    # for d in data:
+    #     print(d)
 
-    plt.figure()
-    for i in range(num_imgs):
-        plt.subplot(int(num_imgs/4),4,i+1)
-        plt.imshow(aud[i,:,:], aspect='auto')
-    plt.show()
+    # plt.figure()
+    # for i in range(num_imgs):
+    #     plt.subplot(int(num_imgs/4),4,i+1)
+    #     plt.imshow(aud[i,:,:], aspect='auto')
+    # plt.show()
 
 
 
