@@ -3,3 +3,10 @@ for sequence: femalemonologue2_t3, size: 242, acc: 71.95%
 for sequence: interactive1_t2, size: 294, acc: 66.99%
 for sequence: interactive4_t3, size: 176, acc: 70.0%
 for sequence: malemonologue2_t3, size: 242, acc: 73.6%
+
+
+for sequence: conversation1_t3, size: 396, acc: 67.27%
+for sequence: femalemonologue2_t3, size: 242, acc: 70.43%
+for sequence: interactive1_t2, size: 294, acc: 66.6%
+for sequence: interactive4_t3, size: 176, acc: 69.28%
+for sequence: malemonologue2_t3, size: 242, acc: 71.97%

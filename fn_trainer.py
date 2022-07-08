@@ -9,7 +9,7 @@ import core.config as conf
 from torchvision.transforms import transforms
 
 
-def create_samples(data, device='cpu', augment=False, take_to_device=True, t_image=conf.data_param['t_image']):
+def create_samples(data, device='cpu', augment=False, contrast_vid=False, take_to_device=True, t_image=conf.data_param['t_image']):
 
     def rotate(l, n): # rotate sequence list
         return l[n:] + l[:n]
@@ -25,9 +25,6 @@ def create_samples(data, device='cpu', augment=False, take_to_device=True, t_ima
 
     if augment:
         for i in range(batch_size):
-            # imgs_pos[i] = transforms.ColorJitter((0.8, 1.2), (0.8, 1.2), (0.8, 1.2), (-0.1, 0.1))(imgs_pos[i])
-            # imgs_pos[i] = transforms.RandomGrayscale(0.2)(imgs_pos[i])
-            # imgs_pos[i] = transforms.RandomInvert(p=0.5)(imgs_pos[i])
             imgs_pos[i] = t_image(imgs_pos[i])
 
     # create contrastive batch (shift by some n)
@@ -48,7 +45,18 @@ def create_samples(data, device='cpu', augment=False, take_to_device=True, t_ima
     # choosing which indexes to drop for contrastive learning.
     rem_count = 0
     for idx, seq in enumerate(seq_neg):
-        if seq == seq_pos[idx]:
+
+        seq1 = seq
+        seq2 = seq_pos[idx]
+
+        if contrast_vid:
+            seq1 = seq1.decode("utf-8")
+            seq1 = seq1[:seq1.find('-cam')]
+
+            seq2 = seq2.decode("utf-8")
+            seq2 = seq2[:seq2.find('-cam')]
+
+        if seq1 == seq2:
             idx_rem = batch_size + idx - rem_count
 
             imgs_all = imgs_all[torch.arange(imgs_all.size(0))!=idx_rem] 
@@ -56,10 +64,9 @@ def create_samples(data, device='cpu', augment=False, take_to_device=True, t_ima
             cam_all = cam_all[torch.arange(cam_all.size(0))!=idx_rem] 
 
             rem_count +=1
-
         else:
             seq_all.append(seq)
-
+ 
     if take_to_device:
         imgs_all = imgs_all.to(device=device)
         audio_all = audio_all.to(device=device)
@@ -347,8 +354,12 @@ def Trainer_AVOL(net,
     return
 
 
-def Evaluator(net, loader, epochs=1, 
-            heatmap=conf.dnn_arch['heatmap']):
+def Evaluator(net, loader, 
+            epochs=1, 
+            contrast_vid=False,
+            heatmap=conf.dnn_arch['heatmap'],
+            verbose=True
+            ):
 
     device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
@@ -359,10 +370,18 @@ def Evaluator(net, loader, epochs=1,
     # torch.autograd.set_detect_anomaly(True)
 
     acc_avg = 0.0
+    acc_pos_avg = 0.0
+    acc_neg_avg = 0.0
 
     for _ in range(1, epochs+1):
 
-        acc = 0.0
+        err = 0.0
+        err_pos = 0.0
+        err_neg = 0.0
+
+        total_n = 0.0
+        total_pos = 0.0
+        total_neg = 0.0
 
         with torch.no_grad():
 
@@ -370,7 +389,7 @@ def Evaluator(net, loader, epochs=1,
 
                 BS = data[0].shape[0] # batch size
                 
-                imgs_all, audio_all, cam_all, seq_all, rem_count = create_samples(data, augment=True, device=device)
+                imgs_all, audio_all, cam_all, seq_all, rem_count = create_samples(data, augment=False, contrast_vid=contrast_vid, device=device)
 
                 if conf.dnn_arch['AVOL'] or heatmap:
 
@@ -389,17 +408,44 @@ def Evaluator(net, loader, epochs=1,
                     _, idx1 = torch.max(out, dim=-1)
                     _, idx2 = torch.max(labels_all, dim=-1)
 
-                acc += 100*(1 - torch.abs(idx1-idx2).sum() / len(idx1))
+                idx1_pos, idx2_pos = idx1[0:BS], idx2[0:BS]
+                idx1_neg, idx2_neg = idx1[BS:], idx2[BS:]
 
-        acc = round(float(acc/len(loader)), 2)
+                n_pos = len(idx1_pos)
+                n_neg = len(idx1_neg)
 
-        verbose_str = 'acc {}%'.format(acc)
-        print(verbose_str)
+                err += torch.abs(idx1-idx2).sum()
+                err_pos += torch.abs(idx1_pos-idx2_pos).sum()
+                err_neg += torch.abs(idx1_neg-idx2_neg).sum()
+
+                total_n += n_pos + n_neg
+                total_pos += n_pos
+                total_neg += n_neg
+
+                # acc += 100*(1 - torch.abs(idx1-idx2).sum() / len(idx1))
+                # acc_pos += 100*(1 - torch.abs(idx1_pos-idx2_pos).sum() / len(idx1_pos))
+                # acc_neg += 100*(1 - torch.abs(idx1_neg-idx2_neg).sum() / len(idx1_neg))
+
+        acc = 100*((total_n - err) / total_n)
+        acc_pos = 100*((total_pos - err_pos) / total_pos)
+        acc_neg = 100*((total_neg - err_neg) / total_neg)
+        
+        # acc = round(float(acc/len(loader)), 2)
+        # acc_pos = round(float(acc_pos/len(loader)), 2)
+        # acc_neg = round(float(acc_neg/len(loader)), 2)
+
+        if verbose:
+            verbose_str = 'acc {}%'.format(acc)
+            print(verbose_str)
 
         acc_avg += acc
+        acc_pos_avg += acc_pos
+        acc_neg_avg += acc_neg
 
     acc_avg = round(float(acc_avg / epochs) , 2)
+    acc_pos_avg = round(float(acc_pos_avg / epochs) , 2)
+    acc_neg_avg = round(float(acc_neg_avg / epochs) , 2)
 
-    return acc_avg
+    return acc_avg, acc_pos_avg, acc_neg_avg
 
 

@@ -50,25 +50,52 @@ def main():
     seq_list = ['conversation1_t3', 'femalemonologue2_t3', 'interactive1_t2', 'interactive4_t3', 'malemonologue2_t3']
     # seq_list = ['all']
 
+    seq_compare = True if len(seq_list) > 1 else False
+
     seq_type = 'all' if seq_list[0]=='all' else 'seq'
-    eval_name = 'eval_results_%s.txt'%seq_type 
+    # contrast_vid_setting = [False, True]
+    contrast_vid_setting = [True]
 
-    save_file = os.path.join(conf.filenames['net_folder_path'], eval_name)
+    for contrast_vid in contrast_vid_setting:
 
-    if eval_name in os.listdir(conf.filenames['net_folder_path']):
-        os.remove(save_file)
+        if contrast_vid:
+            eval_name = 'eval_results_%s_vid.txt'%seq_type
+        else:
+            eval_name = 'eval_results_%s.txt'%seq_type
 
-    for seq in seq_list:
+        save_file = os.path.join(conf.filenames['net_folder_path'], eval_name)
 
-        _ , _ , data_all = get_train_val(train_or_test='test', sequences=seq)
+        print(save_file)
 
-        loader = DataLoader(data_all, batch_size=16, shuffle=True, num_workers=0, pin_memory=True)
+        if seq_compare:
+            acc_mat = np.zeros((len(seq_list), len(seq_list)))
+            acc_pos_mat = np.zeros((len(seq_list), len(seq_list)))
+            acc_neg_mat = np.zeros((len(seq_list), len(seq_list)))
 
-        acc = Evaluator(net, loader=loader, epochs=10)
+        for i, seq1 in enumerate(seq_list):
 
-        print('for sequence: {}, size: {}, acc: {}%'.format(seq, len(data_all), acc),
-                file=open(save_file, "a")
-        )
+            for j, seq2 in enumerate(seq_list):
+
+                if j > i:
+
+                    seq = [seq1, seq2]
+
+                    _ , _ , data_all = get_train_val(train_or_test='test', sequences=seq)
+
+                    loader = DataLoader(data_all, batch_size=16, shuffle=True, num_workers=0, pin_memory=True)
+
+                    acc , acc_pos, acc_neg = Evaluator(net, loader=loader, epochs=10, contrast_vid=contrast_vid, verbose=False)
+
+                    acc_mat[i,j] = acc
+                    acc_pos_mat[i,j] = acc_pos
+                    acc_neg_mat[i,j] = acc_neg
+
+                    print('for sequence: {}, size: {}, acc: {}%, acc_pos: {}%, acc_neg: {}%'.format(seq, len(data_all), acc, acc_pos, acc_neg),
+                            file=open(save_file, "a")
+                    )
+
+        print('\ninter-video accuracy matrix:\n', file=open(save_file, "a"))
+        print('acc_total: \n{} \n\nacc_pos: \n{} \n\nacc_neg: \n{}\n\n.'.format(acc_mat, acc_pos_mat, acc_neg_mat), file=open(save_file, "a"))
 
 
 

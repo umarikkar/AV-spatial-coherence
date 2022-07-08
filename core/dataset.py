@@ -286,7 +286,7 @@ def get_train_val(multi_mic=conf.logmelspectro['multi_mic'], train_or_test='trai
                 # print(data[3])
                 word = data[3].decode("utf-8")
                 word = word[:word.find('-cam')]
-                if word == sequences:
+                if word in sequences:
                     idx_list.append(idx)
                 
             d_dataset = Subset(d_dataset, idx_list)
