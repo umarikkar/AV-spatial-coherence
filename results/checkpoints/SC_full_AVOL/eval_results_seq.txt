@@ -1,0 +1,10 @@
+for sequence: conversation1_t3, size: 396, acc: 51.02%, acc_pos: 100.0%, acc_neg: 0.0%
+for sequence: ['conversation1_t3', 'femalemonologue2_t3'], size: 638, acc: 50.52%, acc_pos: 100.0%, acc_neg: 0.0%
+for sequence: ['conversation1_t3', 'interactive1_t2'], size: 690, acc: 50.56%, acc_pos: 100.0%, acc_neg: 0.0%
+for sequence: ['conversation1_t3', 'interactive4_t3'], size: 572, acc: 50.56%, acc_pos: 100.0%, acc_neg: 0.0%
+for sequence: ['conversation1_t3', 'malemonologue2_t3'], size: 638, acc: 50.63%, acc_pos: 100.0%, acc_neg: 0.0%
+for sequence: femalemonologue2_t3, size: 484, acc: 50.59%, acc_pos: 100.0%, acc_neg: 0.0%
+for sequence: ['femalemonologue2_t3', 'interactive1_t2'], size: 536, acc: 50.57%, acc_pos: 100.0%, acc_neg: 0.0%
+for sequence: ['femalemonologue2_t3', 'interactive4_t3'], size: 418, acc: 50.45%, acc_pos: 100.0%, acc_neg: 0.0%
+for sequence: ['femalemonologue2_t3', 'malemonologue2_t3'], size: 484, acc: 50.47%, acc_pos: 100.0%, acc_neg: 0.0%
+for sequence: interactive1_t2, size: 294, acc: 51.19%, acc_pos: 100.0%, acc_neg: 0.0%

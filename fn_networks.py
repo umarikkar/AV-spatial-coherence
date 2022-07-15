@@ -19,28 +19,46 @@ def init_weights(m):
 
 # SHOW FEATURE MAPS
 
-def show_feature_map(x_list, show=False, savefile=True):
+def show_feature_map(x_list, BS_pos, show=False, savefile=True ):
+
     sz = len(x_list)
-    plt.figure(figsize = (4*sz, 4))
-    for idx, (x, title) in enumerate(x_list):
-        plt.subplot(1, sz, idx+1)
-        # first, avg pool
-        if x.shape[1] != 3:
-            y = x.squeeze(0).to(device='cpu')
-            y = y.mean(dim=0).detach().numpy()
-        else:
-            # rgb image
-            y =  x.squeeze(0).permute(1,2,0).to(device='cpu').detach().numpy()
+    BS = x_list[0][0].shape[0]
 
-        plt.imshow(y, aspect='equal')
-        plt.title(title)
-    if show:
-        plt.show()
+    for im_idx in range(BS):
 
-    if savefile:
-        fig_path = os.path.join(conf.filenames['net_folder_path'], conf.filenames['train_val'])
-        num = len(os.listdir(fig_path)) + 1
-        plt.savefig(os.path.join(conf.filenames['net_folder_path'], conf.filenames['train_val'], 'img_%s'%num + '.png'))
+        plt.figure(figsize = (4*sz, 4))
+
+        for idx, (x, title) in enumerate(x_list):
+            plt.subplot(1, sz, idx+1)
+
+            # print(title, x.shape)
+            # first, avg pool
+            if x.shape[1] != 3:
+                if len(x.shape) ==3 :
+                    y = x[im_idx].to(device='cpu').detach().numpy()
+                else:
+                    y = x[im_idx].squeeze(0).to(device='cpu')
+                    y = y.mean(dim=0).detach().numpy()
+            else:
+                # rgb image
+                y =  x[im_idx].squeeze(0).permute(1,2,0).to(device='cpu').detach().numpy()
+
+            
+
+            plt.imshow(y, aspect='equal')
+            plt.title(title)
+            if im_idx < BS_pos:
+                plt.suptitle('positive sample')
+            else:
+                plt.suptitle('negative sample')
+
+        if show:
+            plt.show()
+
+        if savefile:
+            fig_path = os.path.join(conf.filenames['net_folder_path'], conf.filenames['train_val'])
+            num = len(os.listdir(fig_path)) + 1
+            plt.savefig(os.path.join(conf.filenames['net_folder_path'], conf.filenames['train_val'], 'img_%s'%num + '.png'))
 
     return
 
@@ -150,30 +168,41 @@ class BackboneAud(nn.Module):
 # MERGING FUNCTIONS --------------------------------------------------------------------------------------------------------------------------
 
 class SubnetVid(nn.Module):
-    def __init__(self):
+    def __init__(self, BN=True):
         super().__init__()
+
+        self.BN = BN
 
         self.conv1 = nn.Conv2d(512,128,kernel_size=1)
         self.conv2 = nn.Conv2d(128,128,kernel_size=1)
-        self.BN = nn.BatchNorm2d(num_features=128)
+        if self.BN:
+            self.BN_layer = nn.BatchNorm2d(num_features=128)
 
         self.apply(init_weights)
 
     def forward(self, x):
 
         x = torch.relu(self.conv1(x))
-        x = torch.relu(self.BN(self.conv2(x)))
+        
+        if self.BN:
+            x = torch.relu(self.BN_layer(self.conv2(x)))
+        else:
+            x = torch.relu(self.conv2(x))
 
         return x
         
 
 class SubnetAud(nn.Module):
-    def __init__(self, cam_size=11):
+    def __init__(self, BN=True, cam_size=11):
         super().__init__()
+
+        self.BN = BN
 
         self.conv1 = nn.Conv2d(512,128,kernel_size=1)
         self.FC1 = nn.Linear(128 + cam_size, 128)
-        self.BN = nn.BatchNorm2d(num_features=128)
+
+        if self.BN:
+            self.BN_layer = nn.BatchNorm2d(num_features=128)
 
         self.apply(init_weights)
 
@@ -186,7 +215,10 @@ class SubnetAud(nn.Module):
 
         cam_ID = cam_ID.squeeze(1).float()
 
-        x = torch.relu(self.BN(self.conv1(x)))
+        if self.BN:
+            x = torch.relu(self.BN_layer(self.conv1(x)))
+        else:
+            x = torch.relu(self.conv1(x))
 
         c, h, w = x.shape[1], x.shape[-2], x.shape[-1]
         x = x.view(-1, c, h*w)
@@ -224,7 +256,7 @@ class MergeNet(nn.Module):
         self.conv_final = nn.Conv2d(64, 1, kernel_size=1)
         self.FC_final = nn.Linear(64, 2)
 
-    def forward(self, x_in, y_in, cam):
+    def forward(self, x_in, y_in, cam, BS_pos=None):
 
         x1 = self.VideoNet(x_in)                                                # 512 x 7 x 7 
         y1 = self.AudioNet(y_in)                                                # 512 x H x W 
@@ -240,10 +272,9 @@ class MergeNet(nn.Module):
             features_ls = [
                 (x_in, 'input image'),
                 (x1, 'after img backbone'),
-                (x2, 'after attention'),
-                (x, 'heatmap')
+                (x, 'heatmap (after attention)')
             ]           
-            show_feature_map(features_ls)
+            show_feature_map(features_ls, BS_pos)
 
         if self.heatmap:
  
@@ -286,37 +317,35 @@ class AVOL_Net(nn.Module):
 
         self.AudioNet = BackboneAud()
 
-        self.VideoMerge = SubnetVid()
-        self.AudioMerge = SubnetAud()
+        self.VideoMerge = SubnetVid(BN=False)
+        self.AudioMerge = SubnetAud(BN=False)
 
         self.conv_final = nn.Conv2d(1,1,kernel_size=1)
 
-    def forward(self, imgs=torch.randn((1,1,224,224)), audio=torch.randn((1,16,960,64)), cam=torch.randn((1,11))):
+    def forward(self, x_in, y_in, cam, BS_pos=None):
 
-        # id=1
-        # img = imgs.squeeze(1)[id].permute(1,2,0).cpu().detach().numpy()
-        # plt.figure()
-        # plt.subplot(131)
-        # plt.imshow(img)
+        x1 = self.VideoNet(x_in)                                                # 512 x 7 x 7 
+        y1 = self.AudioNet(y_in)                                                # 512 x H x W 
 
-        x1 = self.VideoNet(imgs.squeeze(1))                                     # 512 x 14 x 14
-        y1 = self.AudioNet(audio)                                               # 512 x H x W 
-
-        x2 = self.VideoMerge(x1)                                                # 128 x 14 x 14 
+        x2 = self.VideoMerge(x1)                                                # 128 x 7 x 7 
         y2 = self.AudioMerge(y1, cam_ID=cam).unsqueeze(-1).unsqueeze(-1)        # 128 x 1 x 1 
 
-        x2 = (x2*y2).mean(dim=1).unsqueeze(1)                                   # 1 x 14 x 14 
+        x2 = x2*y2
+        
+        x2 = x2.mean(dim=1, keepdim=True)                                       # 1 x 14 x 14 
 
-        x2 = torch.relu(self.conv_final(x2)).squeeze(1)
-
-        # plt.subplot(132)
-        # plt.imshow(x2[id].cpu().detach().numpy())
+        x2 = self.conv_final(x2).squeeze(1)
 
         x_map = torch.sigmoid(x2)                                               # 1 x 14 x 14 
 
-        # plt.subplot(133)
-        # plt.imshow(x_map[id].cpu().detach().numpy())
-        # plt.show()
+        if self.inference:
+            features_ls = [
+                (x_in, 'input image'),
+                (x1, 'after img backbone'),
+                (x2, 'after attn'),
+                (x_map, 'heatmap')
+            ]           
+            show_feature_map(features_ls, BS_pos)
 
         x_class = torch.amax(x_map, (1,2))
 

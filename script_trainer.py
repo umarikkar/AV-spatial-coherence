@@ -60,10 +60,13 @@ def main():
 
     net = net.to(device=device)
 
-    if conf.dnn_arch['AVOL']:
-        Trainer_AVOL(net,[1, epochs], loss_fn, optimiser, train_loader, val_loader=val_loader)
-    else:
-        Trainer(net,[1, epochs], loss_fn, optimiser, train_loader, val_loader=val_loader)
+    # if conf.dnn_arch['AVOL']:
+    #     Trainer_AVOL(net,[1, epochs], loss_fn, optimiser, train_loader, val_loader=val_loader)
+    # else:
+    #     Trainer(net,[1, epochs], loss_fn, optimiser, train_loader, val_loader=val_loader)
+
+ 
+    Trainer(net,[1, epochs], loss_fn, optimiser, train_loader, val_loader=val_loader)
 
 
 if __name__=='__main__':

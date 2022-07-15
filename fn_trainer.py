@@ -9,7 +9,7 @@ import core.config as conf
 from torchvision.transforms import transforms
 
 
-def create_samples(data, device='cpu', augment=False, contrast_vid=False, take_to_device=True, t_image=conf.data_param['t_image']):
+def create_samples(data, device='cpu', augment=False, contrast_vid=conf.training_param['vid_contrast'], take_to_device=True, t_image=conf.data_param['t_image']):
 
     def rotate(l, n): # rotate sequence list
         return l[n:] + l[:n]
@@ -51,10 +51,11 @@ def create_samples(data, device='cpu', augment=False, contrast_vid=False, take_t
 
         if contrast_vid:
             seq1 = seq1.decode("utf-8")
-            seq1 = seq1[:seq1.find('-cam')]
+            seq1 = seq1[:seq1.find('_t')]
 
             seq2 = seq2.decode("utf-8")
-            seq2 = seq2[:seq2.find('-cam')]
+            seq2 = seq2[:seq2.find('_t')]
+
 
         if seq1 == seq2:
             idx_rem = batch_size + idx - rem_count
@@ -122,19 +123,20 @@ def Trainer(net,
 
             BS = data[0].shape[0] # batch size
             
-            imgs_all, audio_all, cam_all, seq_all, rem_count = create_samples(data, augment=True, device=device)
+            imgs_all, audio_all, cam_all, _, rem_count = create_samples(data, augment=True, device=device)
 
             out_all = net(imgs_all, audio_all, cam_all)
-            out = out_all[0] if heatmap else out_all
 
             labels_all = create_labels(BS, rem_count, device=device, heatmap=heatmap)
 
-            if heatmap:
+            if heatmap or conf.dnn_arch['AVOL']:
+                out = out_all[0]
                 idx1 = torch.zeros_like(out)
                 idx1[out >= 0.5] = 1
                 idx2 = labels_all
 
-            else: # outputs with FC out as final layer. Learns a bit faster                
+            else: # outputs with FC out as final layer. Learns a bit faster         
+                out = out_all       
                 _, idx1 = torch.max(out, dim=-1)
                 _, idx2 = torch.max(labels_all, dim=-1)
 
@@ -168,18 +170,19 @@ def Trainer(net,
 
                     BS = data[0].shape[0]
 
-                    imgs_all, audio_all, cam_all, rem_count = create_samples(data, augment=True, device=device)
+                    imgs_all, audio_all, cam_all, _, rem_count = create_samples(data, augment=True, device=device)
                     out_all = net(imgs_all, audio_all, cam_all)
-                    out = out_all[0] if heatmap else out_all
 
                     labels_all = create_labels(BS, rem_count, device=device, heatmap=heatmap)
 
-                    if heatmap:
+                    if heatmap or conf.dnn_arch['AVOL']:
+                        out = out_all[0]
                         idx1 = torch.zeros_like(out)
                         idx1[out >= 0.5] = 1
                         idx2 = labels_all
 
-                    else: # outputs with FC out as final layer. Learns a bit faster                
+                    else: # outputs with FC out as final layer. Learns a bit faster 
+                        out = out_all               
                         _, idx1 = torch.max(out, dim=-1)
                         _, idx2 = torch.max(labels_all, dim=-1)
 
@@ -228,7 +231,6 @@ def Trainer(net,
                 'model': net.state_dict(),
                 'optimizer': optimiser.state_dict()}, net_path)
 
-
     return
 
 
@@ -258,7 +260,7 @@ def Trainer_AVOL(net,
 
             BS = data[0].shape[0] # batch size
             
-            imgs_all, audio_all, cam_all, rem_count = create_samples(data, augment=True, device=device)
+            imgs_all, audio_all, cam_all, _, rem_count = create_samples(data, augment=True, device=device)
 
             out, _ = net(imgs_all, audio_all, cam_all)
 
@@ -296,7 +298,7 @@ def Trainer_AVOL(net,
 
                     BS = data[0].shape[0]
 
-                    imgs_all, audio_all, cam_all, rem_count = create_samples(data, augment=False, device=device)
+                    imgs_all, audio_all, cam_all, _, rem_count = create_samples(data, augment=False, device=device)
                     out, _ = net(imgs_all, audio_all, cam_all)
 
                     labels_all = create_labels(BS, rem_count, device=device, heatmap=heatmap)
@@ -358,7 +360,8 @@ def Evaluator(net, loader,
             epochs=1, 
             contrast_vid=False,
             heatmap=conf.dnn_arch['heatmap'],
-            verbose=True
+            verbose=True,
+            count=None
             ):
 
     device = (torch.device('cuda') if torch.cuda.is_available()
@@ -385,16 +388,18 @@ def Evaluator(net, loader,
 
         with torch.no_grad():
 
+            c = 0
+
             for data in loader:
 
                 BS = data[0].shape[0] # batch size
                 
-                imgs_all, audio_all, cam_all, seq_all, rem_count = create_samples(data, augment=False, contrast_vid=contrast_vid, device=device)
+                imgs_all, audio_all, cam_all, _, rem_count = create_samples(data, augment=False, contrast_vid=contrast_vid, device=device)
 
                 if conf.dnn_arch['AVOL'] or heatmap:
 
                     labels_all = create_labels(BS, rem_count, device=device, heatmap=True)
-                    out, _ = net(imgs_all, audio_all, cam_all)
+                    out, _ = net(imgs_all, audio_all, cam_all, BS)
 
                     idx1 = torch.zeros_like(out)
                     idx1[out >= 0.5] = 1
@@ -421,6 +426,10 @@ def Evaluator(net, loader,
                 total_n += n_pos + n_neg
                 total_pos += n_pos
                 total_neg += n_neg
+
+                c += 1
+                if count != None and c == count:
+                    break
 
                 # acc += 100*(1 - torch.abs(idx1-idx2).sum() / len(idx1))
                 # acc_pos += 100*(1 - torch.abs(idx1_pos-idx2_pos).sum() / len(idx1_pos))

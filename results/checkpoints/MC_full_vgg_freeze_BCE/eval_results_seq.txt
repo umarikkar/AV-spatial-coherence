@@ -9,3 +9,33 @@ for sequence: femalemonologue2_t3, size: 242, acc: 81.51%
 for sequence: interactive1_t2, size: 294, acc: 75.94%
 for sequence: interactive4_t3, size: 176, acc: 75.62%
 for sequence: malemonologue2_t3, size: 242, acc: 79.82%
+for sequence: conversation1_t3, size: 396, acc: 70.5%, acc_pos: 67.78%, acc_neg: 73.33%
+for sequence: femalemonologue2_t3, size: 484, acc: 82.39%, acc_pos: 82.95%, acc_neg: 81.8%
+for sequence: interactive1_t2, size: 294, acc: 76.81%, acc_pos: 78.1%, acc_neg: 75.45%
+for sequence: interactive4_t3, size: 176, acc: 75.63%, acc_pos: 86.99%, acc_neg: 63.74%
+for sequence: malemonologue2_t3, size: 242, acc: 78.97%, acc_pos: 80.87%, acc_neg: 76.98%
+
+inter-video accuracy matrix:
+
+acc_total: 
+[[70.5   0.    0.    0.    0.  ]
+ [ 0.   82.39  0.    0.    0.  ]
+ [ 0.    0.   76.81  0.    0.  ]
+ [ 0.    0.    0.   75.63  0.  ]
+ [ 0.    0.    0.    0.   78.97]] 
+
+acc_pos: 
+[[67.78  0.    0.    0.    0.  ]
+ [ 0.   82.95  0.    0.    0.  ]
+ [ 0.    0.   78.1   0.    0.  ]
+ [ 0.    0.    0.   86.99  0.  ]
+ [ 0.    0.    0.    0.   80.87]] 
+
+acc_neg: 
+[[73.33  0.    0.    0.    0.  ]
+ [ 0.   81.8   0.    0.    0.  ]
+ [ 0.    0.   75.45  0.    0.  ]
+ [ 0.    0.    0.   63.74  0.  ]
+ [ 0.    0.    0.    0.   76.98]]
+
+.

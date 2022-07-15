@@ -1,2 +1,16 @@
 for sequence: all, size: 1350, acc: 76.79%
 for sequence: all, size: 1350, acc: 75.3%
+for sequence: ['all', 'all'], size: 1350, acc: 75.42%, acc_pos: 65.27%, acc_neg: 85.65%
+
+inter-video accuracy matrix:
+
+acc_total: 
+[[75.42]] 
+
+acc_pos: 
+[[65.27]] 
+
+acc_neg: 
+[[85.65]]
+
+.

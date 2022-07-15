@@ -42,13 +42,16 @@ def set_filename():
 
         fol_name = mic_name + '_' + net_size + '_AVOL'
 
+    if training_param['vid_contrast']:
+        fol_name = fol_name + '_vid'
+
 
     file_path = os.path.join(os.getcwd(), 'results', 'checkpoints', fol_name)  # results/checkpoints/MultiChannel_sz
 
     if not os.path.exists(file_path):
         os.mkdir(file_path)
 
-    imgs = ['train', 'val']
+    imgs = ['train', 'val', 'test']
     for img in imgs:
         img_path = os.path.join(file_path, img)
         if not os.path.exists(img_path):
@@ -81,7 +84,7 @@ dnn_arch = {
     'aud_pretrained': False,
     'aud_freeze': False,
 
-    'AVOL': False, 
+    'AVOL': True, 
 }
 
 training_param = {
@@ -96,9 +99,10 @@ training_param = {
     'frame_seq': False,
     'frame_vid_samples': 5,
 
-    'toy_params': (False, 1024),
+    'toy_params': (False, 64),
 
     'inference': False,
+    'vid_contrast': True,
 
     #'input_norm': 'freq_wise', # choose between: 'freq_wise', 'global', or None
     #'step_size':,
