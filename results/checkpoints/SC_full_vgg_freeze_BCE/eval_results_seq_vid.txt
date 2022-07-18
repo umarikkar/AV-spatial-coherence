@@ -2,11 +2,14 @@ for sequence: ['conversation1_t3', 'femalemonologue2_t3'], size: 638, acc: 69.51
 for sequence: ['conversation1_t3', 'interactive1_t2'], size: 690, acc: 64.28%, acc_pos: 57.51%, acc_neg: 78.11%
 for sequence: ['conversation1_t3', 'interactive4_t3'], size: 572, acc: 71.39%, acc_pos: 68.55%, acc_neg: 78.14%
 for sequence: ['conversation1_t3', 'malemonologue2_t3'], size: 638, acc: 69.66%, acc_pos: 65.64%, acc_neg: 78.05%
+
 for sequence: ['femalemonologue2_t3', 'interactive1_t2'], size: 536, acc: 66.99%, acc_pos: 56.44%, acc_neg: 88.01%
 for sequence: ['femalemonologue2_t3', 'interactive4_t3'], size: 418, acc: 75.21%, acc_pos: 72.03%, acc_neg: 81.58%
 for sequence: ['femalemonologue2_t3', 'malemonologue2_t3'], size: 484, acc: 73.65%, acc_pos: 68.12%, acc_neg: 84.74%
+
 for sequence: ['interactive1_t2', 'interactive4_t3'], size: 470, acc: 66.92%, acc_pos: 65.06%, acc_neg: 71.04%
 for sequence: ['interactive1_t2', 'malemonologue2_t3'], size: 536, acc: 69.39%, acc_pos: 62.39%, acc_neg: 83.83%
+
 for sequence: ['interactive4_t3', 'malemonologue2_t3'], size: 418, acc: 79.08%, acc_pos: 80.0%, acc_neg: 77.15%
 
 inter-video accuracy matrix:
