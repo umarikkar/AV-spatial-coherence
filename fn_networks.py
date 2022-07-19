@@ -321,11 +321,10 @@ class AVE_Net(nn.Module):
         self.AudioMerge = SubnetAud(BN=False)
 
         self.FC1_aud = nn.Linear(512, 128).apply(init_weights)
-        self.FC2_aud = nn.Linear(128+cam_size, 128).apply(init_weights)
+        self.FC2_aud = nn.Linear(128+cam_size, 128)
 
         self.FC1_img = nn.Linear(512, 128).apply(init_weights)
-        self.FC2_img = nn.Linear(128, 128).apply(init_weights)
-
+        self.FC2_img = nn.Linear(128, 128)
         self.FC3 = nn.Linear(1,2)
 
     def forward(self, x_in, y_in, cam=None, BS_pos=None):
@@ -343,7 +342,7 @@ class AVE_Net(nn.Module):
         x1 = self.FC2_img(x1)                   # 128
 
         y1 = self.FC1_aud(y1)                   # 128
-        y1 = torch.concat((y1, cam), dim=-1)    # 139
+        y1 = torch.concat((y1, cam.squeeze(1)), dim=-1).float()    # 139
         y1 = self.FC2_aud(y1)                   # 128
 
         # L2 norm
@@ -361,12 +360,68 @@ class AVE_Net(nn.Module):
         return x
 
 
+# class AVOL_Net(nn.Module):
+
+
+#     def __init__(self, 
+#     heatmap=conf.dnn_arch['heatmap'], 
+#     inference = conf.training_param['inference']
+#     ):
+        
+#         self.inference = inference
+
+#         super().__init__()
+#         self.heatmap = heatmap
+        
+#         self.VideoNet = models_vision.vgg11(pretrained=True).features[0:20]
+
+#         for layer in self.VideoNet:
+#                 if isinstance(layer, nn.Conv2d):
+#                     layer.requires_grad_ = False
+
+#         self.AudioNet = BackboneAud()
+
+#         self.VideoMerge = SubnetVid(BN=False)
+#         self.AudioMerge = SubnetAud(BN=False)
+
+#         self.conv_final = nn.Conv2d(1,1,kernel_size=1)
+
+#     def forward(self, x_in, y_in, cam, BS_pos=None):
+
+#         x1 = self.VideoNet(x_in)                                                # 512 x 7 x 7 
+#         y1 = self.AudioNet(y_in)                                                # 512 x H x W 
+
+#         x2 = self.VideoMerge(x1)                                                # 128 x 7 x 7 
+#         y2 = self.AudioMerge(y1, cam_ID=cam).unsqueeze(-1).unsqueeze(-1)        # 128 x 1 x 1 
+
+#         x2 = x2*y2
+        
+#         x2 = x2.mean(dim=1, keepdim=True)                                       # 1 x 14 x 14 
+
+#         x2 = self.conv_final(x2).squeeze(1)
+
+#         x_map = torch.sigmoid(x2)                                               # 1 x 14 x 14 
+
+#         if self.inference:
+#             features_ls = [
+#                 (x_in, 'input image'),
+#                 (x1, 'after img backbone'),
+#                 (x2, 'after attn'),
+#                 (x_map, 'heatmap')
+#             ]           
+#             show_feature_map(features_ls, BS_pos)
+
+#         x_class = torch.amax(x_map, (1,2))
+
+#         return x_class, x_map
+
 class AVOL_Net(nn.Module):
 
 
     def __init__(self, 
     heatmap=conf.dnn_arch['heatmap'], 
-    inference = conf.training_param['inference']
+    inference = conf.training_param['inference'],
+    cam_size=11
     ):
         
         self.inference = inference
@@ -382,32 +437,40 @@ class AVOL_Net(nn.Module):
 
         self.AudioNet = BackboneAud()
 
-        self.VideoMerge = SubnetVid(BN=False)
-        self.AudioMerge = SubnetAud(BN=False)
+        self.conv5 = nn.Conv2d(512, 128, kernel_size=1).apply(init_weights)
+        self.conv6 = nn.Conv2d(128, 128, kernel_size=1)
 
-        self.conv_final = nn.Conv2d(1,1,kernel_size=1)
+        self.FC1_aud = nn.Linear(512, 128).apply(init_weights)
+        self.FC2_aud = nn.Linear(128+cam_size, 128)
+
+        self.conv7 = nn.Conv2d(1,1,kernel_size=1)
 
     def forward(self, x_in, y_in, cam, BS_pos=None):
 
-        x1 = self.VideoNet(x_in)                                                # 512 x 7 x 7 
+        x1 = self.VideoNet(x_in)                                                # 512 x 14 x 14 
         y1 = self.AudioNet(y_in)                                                # 512 x H x W 
 
-        x2 = self.VideoMerge(x1)                                                # 128 x 7 x 7 
-        y2 = self.AudioMerge(y1, cam_ID=cam).unsqueeze(-1).unsqueeze(-1)        # 128 x 1 x 1 
+        h_aud, w_aud = y1.shape[-2], y1.shape[-1]
+        y1 = torch.max_pool2d(y1, (h_aud, w_aud), (h_aud, w_aud)).squeeze(-1).squeeze(-1)
 
-        x2 = x2*y2
+        x1 = torch.relu(self.conv5(x1))                                         # 128 x 14 x 14   
+        x1 = torch.relu(self.conv6(x1))                                         # 128 x 14 x 14    
+
+        y1 = self.FC1_aud(y1)                                                   # 128
+        y1 = torch.concat((y1, cam.squeeze(1)), dim=-1).float()                 # 139
+        y1 = self.FC2_aud(y1).unsqueeze(-1).unsqueeze(-1)                       # 128 x 1  x 1
+
+        x1 = x1*y1                                                              # B x 128 x 14 x 14
         
-        x2 = x2.mean(dim=1, keepdim=True)                                       # 1 x 14 x 14 
+        x1 = x1.mean(dim=1, keepdim=True)                                       # B x 1 x 14 x 14 
+        x1 = self.conv7(x1).squeeze(1)                                     # B x 14 x 14                         
 
-        x2 = self.conv_final(x2).squeeze(1)
-
-        x_map = torch.sigmoid(x2)                                               # 1 x 14 x 14 
+        x_map = torch.sigmoid(x1)                                               # B x 14 x 14 
 
         if self.inference:
             features_ls = [
                 (x_in, 'input image'),
                 (x1, 'after img backbone'),
-                (x2, 'after attn'),
                 (x_map, 'heatmap')
             ]           
             show_feature_map(features_ls, BS_pos)
@@ -415,6 +478,7 @@ class AVOL_Net(nn.Module):
         x_class = torch.amax(x_map, (1,2))
 
         return x_class, x_map
+
 
 
 class AVOL_Net_temporal(nn.Module):

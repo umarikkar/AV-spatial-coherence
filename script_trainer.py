@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 import core.config as conf
 import utils.utils as utils
 from core.dataset import get_train_val
-from fn_networks import MergeNet, AVOL_Net
+from fn_networks import MergeNet, AVOL_Net, AVE_Net
 from fn_trainer import Trainer, Trainer_AVOL
 
 
@@ -23,9 +23,13 @@ def main():
 
     random.seed(5)
     multi_mic = conf.logmelspectro['multi_mic']
+    
     if conf.dnn_arch['AVOL']:
         net = AVOL_Net()
         loss_fn = nn.BCELoss()
+    elif conf.dnn_arch['AVE']:
+        net = AVE_Net()
+        loss_fn = nn.CrossEntropyLoss()
     else:
         net = MergeNet()
         loss_fn = nn.BCELoss() if conf.dnn_arch['heatmap'] else nn.CrossEntropyLoss()

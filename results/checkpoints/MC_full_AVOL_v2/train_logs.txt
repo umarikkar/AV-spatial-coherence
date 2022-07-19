@@ -1,0 +1,3 @@
+2022-07-19 21:34:25.268731 Epoch 1, Train loss 0.5759, Train acc 67.92%, Val loss 0.505, Val acc 75.89%
+2022-07-19 21:52:24.814236 Epoch 2, Train loss 0.4805, Train acc 76.42%, Val loss 0.4595, Val acc 77.05%
+2022-07-19 22:09:46.266374 Epoch 3, Train loss 0.4612, Train acc 77.72%, Val loss 0.4403, Val acc 79.33%

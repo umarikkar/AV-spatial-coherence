@@ -67,6 +67,8 @@ def create_samples(data, device='cpu', augment=False, contrast_vid=conf.training
             rem_count +=1
         else:
             seq_all.append(seq)
+
+        # seq_all.append(seq)
  
     if take_to_device:
         imgs_all = imgs_all.to(device=device)
@@ -80,7 +82,7 @@ def create_labels(BS, rem_count, device='cpu', heatmap=conf.dnn_arch['heatmap'])
 
     neg_BS = BS - rem_count
 
-    if heatmap:
+    if heatmap or conf.dnn_arch['AVOL']:
         labels_pos = torch.ones(BS).to(device=device)
         labels_neg = torch.zeros(neg_BS).to(device=device)
         labels_all = torch.concat((labels_pos, labels_neg), dim=0).to(device=device)
@@ -89,9 +91,11 @@ def create_labels(BS, rem_count, device='cpu', heatmap=conf.dnn_arch['heatmap'])
         one = torch.ones((BS,1))
         zer = torch.zeros((neg_BS,1))
 
-        labels_pos = torch.concat((one, zer), dim=-1)
-        labels_neg = torch.concat((zer, one), dim=-1)
-        labels_all = torch.concat((labels_pos, labels_neg), dim=0).to(device=device)
+        labels_pos = torch.concat((one, zer), dim=0)
+        labels_neg = (-1.0)*labels_pos + 1.0
+
+        labels_neg = torch.concat((zer, one), dim=0)
+        labels_all = torch.concat((labels_pos, labels_neg), dim=-1).to(device=device)
 
     return labels_all
 

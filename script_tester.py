@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 import core.config as conf
 import utils.utils as utils
 from core.dataset import get_train_val
-from fn_networks import MergeNet, AVOL_Net
+from fn_networks import MergeNet, AVOL_Net, AVE_Net
 from fn_trainer import Trainer, Evaluator
 
 
@@ -26,16 +26,21 @@ def main():
     # loading network ----------------------------------------
 
     if conf.dnn_arch['AVOL']:
-        net = AVOL_Net(inference=inference)
+        net = AVOL_Net()
+        loss_fn = nn.BCELoss()
+    elif conf.dnn_arch['AVE']:
+        net = AVE_Net()
+        loss_fn = nn.CrossEntropyLoss()
     else:
-        net = MergeNet(inference=inference)
+        net = MergeNet()
+        loss_fn = nn.BCELoss() if conf.dnn_arch['heatmap'] else nn.CrossEntropyLoss()
 
     optimiser = optim.Adam(net.parameters(), lr=1e-4)
 
     fol_name = conf.filenames['net_folder_path']
 
     print(fol_name)
-    ep = 8
+    ep = 16
 
     net_name = 'net_ep_%s.pt'%ep
     net_path = os.path.join(fol_name, net_name)
@@ -55,8 +60,8 @@ def main():
     seq_compare = True if len(seq_list) > 1 else False
 
     seq_type = 'all' if seq_list[0]=='all' else 'seq'
-    # contrast_vid_setting = [False, True]
-    contrast_vid_setting = [False]
+    contrast_vid_setting = [False, True]
+    # contrast_vid_setting = [False]
 
     for contrast_vid in contrast_vid_setting:
 

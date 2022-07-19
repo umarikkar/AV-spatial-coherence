@@ -1,0 +1,40 @@
+for sequence: conversation1_t3, size: 396, acc: 72.02%, acc_pos: 78.59%, acc_neg: 65.17%
+for sequence: ['conversation1_t3', 'femalemonologue2_t3'], size: 638, acc: 77.86%, acc_pos: 80.88%, acc_neg: 74.76%
+for sequence: ['conversation1_t3', 'interactive1_t2'], size: 690, acc: 79.22%, acc_pos: 83.84%, acc_neg: 74.49%
+for sequence: ['conversation1_t3', 'interactive4_t3'], size: 572, acc: 76.18%, acc_pos: 78.51%, acc_neg: 73.79%
+for sequence: ['conversation1_t3', 'malemonologue2_t3'], size: 638, acc: 75.19%, acc_pos: 70.89%, acc_neg: 79.58%
+for sequence: femalemonologue2_t3, size: 484, acc: 72.55%, acc_pos: 71.69%, acc_neg: 73.43%
+for sequence: ['femalemonologue2_t3', 'interactive1_t2'], size: 536, acc: 79.64%, acc_pos: 88.15%, acc_neg: 70.91%
+for sequence: ['femalemonologue2_t3', 'interactive4_t3'], size: 418, acc: 74.7%, acc_pos: 81.72%, acc_neg: 67.55%
+for sequence: ['femalemonologue2_t3', 'malemonologue2_t3'], size: 484, acc: 71.95%, acc_pos: 71.69%, acc_neg: 72.21%
+for sequence: interactive1_t2, size: 294, acc: 76.87%, acc_pos: 91.26%, acc_neg: 61.92%
+for sequence: ['interactive1_t2', 'interactive4_t3'], size: 470, acc: 76.57%, acc_pos: 86.11%, acc_neg: 66.82%
+for sequence: ['interactive1_t2', 'malemonologue2_t3'], size: 536, acc: 75.74%, acc_pos: 75.76%, acc_neg: 75.71%
+for sequence: interactive4_t3, size: 176, acc: 74.24%, acc_pos: 78.86%, acc_neg: 69.45%
+for sequence: ['interactive4_t3', 'malemonologue2_t3'], size: 418, acc: 71.13%, acc_pos: 67.11%, acc_neg: 75.25%
+for sequence: malemonologue2_t3, size: 242, acc: 66.71%, acc_pos: 58.55%, acc_neg: 75.22%
+
+inter-video accuracy matrix:
+
+acc_total: 
+[[72.02 77.86 79.22 76.18 75.19]
+ [ 0.   72.55 79.64 74.7  71.95]
+ [ 0.    0.   76.87 76.57 75.74]
+ [ 0.    0.    0.   74.24 71.13]
+ [ 0.    0.    0.    0.   66.71]] 
+
+acc_pos: 
+[[78.59 80.88 83.84 78.51 70.89]
+ [ 0.   71.69 88.15 81.72 71.69]
+ [ 0.    0.   91.26 86.11 75.76]
+ [ 0.    0.    0.   78.86 67.11]
+ [ 0.    0.    0.    0.   58.55]] 
+
+acc_neg: 
+[[65.17 74.76 74.49 73.79 79.58]
+ [ 0.   73.43 70.91 67.55 72.21]
+ [ 0.    0.   61.92 66.82 75.71]
+ [ 0.    0.    0.   69.45 75.25]
+ [ 0.    0.    0.    0.   75.22]]
+
+.

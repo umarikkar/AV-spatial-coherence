@@ -22,8 +22,11 @@ def set_filename():
     else:
         net_size = 'full'
 
-    if not dnn_arch['AVOL']:
-
+    if dnn_arch['AVOL']:
+        fol_name = mic_name + '_' + net_size + '_AVOL_v2'
+    elif dnn_arch['AVE']:
+        fol_name = mic_name + '_' + net_size + '_AVE'
+    else:
         if not dnn_arch['vid_custom']:
             if dnn_arch['vid_pretrained']:
                 if not dnn_arch['vid_freeze']:
@@ -38,9 +41,6 @@ def set_filename():
         if dnn_arch['heatmap']:
             fol_name = fol_name + '_BCE'
 
-    else:
-
-        fol_name = mic_name + '_' + net_size + '_AVOL'
 
     if training_param['vid_contrast']:
         fol_name = fol_name + '_vid'
@@ -74,7 +74,7 @@ input = {
 }
 
 dnn_arch = {
-    'heatmap':True,
+    'heatmap':False,
 
     'vid_custom':False,
     'vid_pretrained': True,
@@ -85,6 +85,7 @@ dnn_arch = {
     'aud_freeze': False,
 
     'AVOL': True, 
+    'AVE': False,
 }
 
 training_param = {
@@ -102,7 +103,7 @@ training_param = {
     'toy_params': (False, 64),
 
     'inference': False,
-    'vid_contrast': True,
+    'vid_contrast': False,
 
     #'input_norm': 'freq_wise', # choose between: 'freq_wise', 'global', or None
     #'step_size':,
