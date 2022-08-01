@@ -1,0 +1,32 @@
+for sequence: all, size: 1350, acc: 50.33%, acc_pos: 100.0%, acc_neg: 0.0%
+
+inter-video accuracy matrix:
+
+epochs: 40 
+
+acc_total: 
+[[50.33]] 
+
+acc_pos: 
+[[100.]] 
+
+acc_neg: 
+[[0.]]
+
+.
+for sequence: all, size: 1350, acc: 100.0%, acc_pos: 100.0%, acc_neg: nan%
+
+inter-video accuracy matrix:
+
+epochs: 40 
+
+acc_total: 
+[[100.]] 
+
+acc_pos: 
+[[100.]] 
+
+acc_neg: 
+[[nan]]
+
+.

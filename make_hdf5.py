@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 
 base_path = conf.input['project_path']
 
-train_or_test = 'test'
+train_or_test = 'train'
 csv_file = os.path.join(base_path, 'data', 'csv', train_or_test + '.csv')
 # csv_file = base_path + 'data/csv/' + train_or_test + '.csv'
 
@@ -40,6 +40,8 @@ def main():
 
         f = h5py.File(h5py_path, 'a')
 
+        print(h5py_path)
+
         d_dataset = dataset_from_scratch(csv_file, train_or_test)
 
         total_size = len(d_dataset)
@@ -56,6 +58,8 @@ def main():
             all_frames = data[2]
             sequence = data[3]
             initial_time = data[4]
+            pseudo_labels = data[5]
+            speech_activity = data[6]
 
             #print(count)
             if count == 0:
@@ -63,9 +67,13 @@ def main():
                 f.create_dataset('features', data=audio, chunks=True, maxshape=(None, None, None, 64))
                 f.create_dataset('cams', data=cam, chunks=True, maxshape=(None, 1, 11))
                 f.create_dataset('img_frames', data=all_frames, chunks=True, maxshape=(None, None, 3, 224, 224))
-                f.create_dataset('sequence', data=sequence, maxshape=(None,), chunks=True)                
+                              
                 f.create_dataset('initial_time', data=initial_time, maxshape=(None,), chunks=True)
 
+
+                f.create_dataset('sequence', data=sequence, maxshape=(None,), chunks=True)  
+                f.create_dataset('pseudo_labels', data=pseudo_labels, maxshape=(None,), chunks=True)
+                f.create_dataset('speech_activity', data=speech_activity, maxshape=(None,), chunks=True)
             else:
                 # Append new data to it
                 f['features'].resize((f['features'].shape[0] + audio.shape[0]), axis=0)
@@ -82,6 +90,12 @@ def main():
 
                 f['initial_time'].resize((f['initial_time'].shape[0] + len(initial_time)), axis=0)
                 f['initial_time'][-len(initial_time):] = initial_time
+
+                f['pseudo_labels'].resize((f['pseudo_labels'].shape[0] + len(pseudo_labels)), axis=0)
+                f['pseudo_labels'][-len(pseudo_labels):] = pseudo_labels
+
+                f['speech_activity'].resize((f['speech_activity'].shape[0] + len(speech_activity)), axis=0)
+                f['speech_activity'][-len(speech_activity):] = speech_activity
 
                 # f['all_frames'].resize((f['all_frames'].shape[0] + audio.shape[0]), axis=0)
                 # f['all_frames'][-audio.shape[0]:] = audio

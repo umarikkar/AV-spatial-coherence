@@ -1,0 +1,40 @@
+for sequence: conversation1_t3, size: 396, acc: 73.79%, acc_pos: 97.22%, acc_neg: 49.16%
+for sequence: ['conversation1_t3', 'femalemonologue2_t3'], size: 638, acc: 73.09%, acc_pos: 96.55%, acc_neg: 49.03%
+for sequence: ['conversation1_t3', 'interactive1_t2'], size: 690, acc: 74.41%, acc_pos: 98.41%, acc_neg: 49.84%
+for sequence: ['conversation1_t3', 'interactive4_t3'], size: 572, acc: 74.63%, acc_pos: 98.08%, acc_neg: 50.59%
+for sequence: ['conversation1_t3', 'malemonologue2_t3'], size: 638, acc: 74.74%, acc_pos: 98.28%, acc_neg: 50.7%
+for sequence: femalemonologue2_t3, size: 484, acc: 74.51%, acc_pos: 97.73%, acc_neg: 50.9%
+for sequence: ['femalemonologue2_t3', 'interactive1_t2'], size: 536, acc: 74.69%, acc_pos: 97.95%, acc_neg: 50.9%
+for sequence: ['femalemonologue2_t3', 'interactive4_t3'], size: 418, acc: 73.95%, acc_pos: 97.37%, acc_neg: 50.08%
+for sequence: ['femalemonologue2_t3', 'malemonologue2_t3'], size: 484, acc: 74.64%, acc_pos: 97.73%, acc_neg: 51.08%
+for sequence: interactive1_t2, size: 294, acc: 75.52%, acc_pos: 100.0%, acc_neg: 49.96%
+for sequence: ['interactive1_t2', 'interactive4_t3'], size: 470, acc: 75.33%, acc_pos: 100.0%, acc_neg: 50.05%
+for sequence: ['interactive1_t2', 'malemonologue2_t3'], size: 536, acc: 75.02%, acc_pos: 100.0%, acc_neg: 49.4%
+for sequence: interactive4_t3, size: 176, acc: 74.96%, acc_pos: 100.0%, acc_neg: 48.96%
+for sequence: ['interactive4_t3', 'malemonologue2_t3'], size: 418, acc: 76.28%, acc_pos: 100.0%, acc_neg: 52.0%
+for sequence: malemonologue2_t3, size: 242, acc: 75.28%, acc_pos: 100.0%, acc_neg: 49.29%
+
+inter-video accuracy matrix:
+
+acc_total: 
+[[73.79 73.09 74.41 74.63 74.74]
+ [ 0.   74.51 74.69 73.95 74.64]
+ [ 0.    0.   75.52 75.33 75.02]
+ [ 0.    0.    0.   74.96 76.28]
+ [ 0.    0.    0.    0.   75.28]] 
+
+acc_pos: 
+[[ 97.22  96.55  98.41  98.08  98.28]
+ [  0.    97.73  97.95  97.37  97.73]
+ [  0.     0.   100.   100.   100.  ]
+ [  0.     0.     0.   100.   100.  ]
+ [  0.     0.     0.     0.   100.  ]] 
+
+acc_neg: 
+[[49.16 49.03 49.84 50.59 50.7 ]
+ [ 0.   50.9  50.9  50.08 51.08]
+ [ 0.    0.   49.96 50.05 49.4 ]
+ [ 0.    0.    0.   48.96 52.  ]
+ [ 0.    0.    0.    0.   49.29]]
+
+.

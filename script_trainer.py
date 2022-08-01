@@ -14,8 +14,8 @@ from torch.utils.data import DataLoader
 import core.config as conf
 import utils.utils as utils
 from core.dataset import get_train_val
-from fn_networks import MergeNet, AVOL_Net, AVE_Net
-from fn_trainer import Trainer, Trainer_AVOL
+from fn_trainer import Trainer_contrast, Trainer_binary
+from core.helper_fns import set_network
 
 
 
@@ -23,54 +23,55 @@ def main():
 
     random.seed(5)
     multi_mic = conf.logmelspectro['multi_mic']
+
+    net, loss_fn = set_network()
+
     
-    if conf.dnn_arch['AVOL']:
-        net = AVOL_Net()
-        loss_fn = nn.BCELoss()
-    elif conf.dnn_arch['AVE']:
-        net = AVE_Net()
-        loss_fn = nn.CrossEntropyLoss()
-    else:
-        net = MergeNet()
-        loss_fn = nn.BCELoss() if conf.dnn_arch['heatmap'] else nn.CrossEntropyLoss()
-
-    epochs = 16
     optimiser = optim.Adam(net.parameters(), lr=1e-4)
+    # optimiser = optim.SGD(net.parameters(), lr=1e-2)
 
-    # # loading network ------------------------------------------
+    epochs = conf.training_param['epochs']
+    bs = conf.training_param['batch_size']
 
-    # fol_name = conf.filenames['net_folder_path']
+    # loading network ------------------------------------------
 
-    # print(fol_name)
-    # ep = 8
+    load_net = False
 
-    # net_name = 'net_ep_%s.pt'%ep
-    # net_path = os.path.join(fol_name, net_name)
+    if load_net:
 
-    # checkpoint = torch.load(net_path)
+        fol_name = conf.filenames['net_folder_path']
 
-    # net.load_state_dict(checkpoint['model'])
-    # optimiser.load_state_dict(checkpoint['optimizer'])
+        print(fol_name)
+        ep = 28
 
-    # # ---------------------------------------------------------
+        net_name = 'net_ep_%s.pt'%ep
+        net_path = os.path.join(fol_name, net_name)
+
+        checkpoint = torch.load(net_path)
+
+        net.load_state_dict(checkpoint['model'])
+        # optimiser.load_state_dict(checkpoint['optimizer'])
+
+    else:
+        ep = 0
+
+    # ---------------------------------------------------------
 
     data_train, data_val, _ = get_train_val(multi_mic=multi_mic, train_or_test='train')
 
-    train_loader = DataLoader(data_train, batch_size=16, shuffle=True, num_workers=0, pin_memory=True)
-    val_loader = DataLoader(data_val, batch_size=16, shuffle=True, num_workers=0, pin_memory=True)
+    train_loader = DataLoader(data_train, batch_size=bs, shuffle=True, num_workers=0, pin_memory=True)
+    val_loader = DataLoader(data_val, batch_size=bs, shuffle=True, num_workers=0, pin_memory=True)
 
-    device = (torch.device('cuda') if torch.cuda.is_available()
-            else torch.device('cpu'))
+    device = conf.training_param['device']
 
     net = net.to(device=device)
 
-    # if conf.dnn_arch['AVOL']:
-    #     Trainer_AVOL(net,[1, epochs], loss_fn, optimiser, train_loader, val_loader=val_loader)
-    # else:
-    #     Trainer(net,[1, epochs], loss_fn, optimiser, train_loader, val_loader=val_loader)
+    print('starting epochs: {}\ntotal epochs: {}\n'.format(ep, epochs))
 
- 
-    Trainer(net,[1, epochs], loss_fn, optimiser, train_loader, val_loader=val_loader)
+    if conf.training_param['train_binary']:
+        Trainer_binary(net,[ep+1, epochs], loss_fn, optimiser, train_loader, val_loader=val_loader)
+    else:
+        Trainer_contrast(net,[ep+1, epochs], loss_fn, optimiser, train_loader, val_loader=val_loader)
 
 
 if __name__=='__main__':

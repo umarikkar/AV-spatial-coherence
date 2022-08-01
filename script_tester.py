@@ -14,33 +14,30 @@ from torch.utils.data import DataLoader
 import core.config as conf
 import utils.utils as utils
 from core.dataset import get_train_val
+from core.helper_fns import set_network
 from fn_networks import MergeNet, AVOL_Net, AVE_Net
-from fn_trainer import Trainer, Evaluator
+from fn_trainer import Trainer_binary, Eval, Eval_contrast, create_samples
+
+import matplotlib.pyplot as plt
 
 
 def main():
 
     random.seed(5)
-    inference=False
+    inference=True
 
     # loading network ----------------------------------------
 
-    if conf.dnn_arch['AVOL']:
-        net = AVOL_Net()
-        loss_fn = nn.BCELoss()
-    elif conf.dnn_arch['AVE']:
-        net = AVE_Net()
-        loss_fn = nn.CrossEntropyLoss()
-    else:
-        net = MergeNet()
-        loss_fn = nn.BCELoss() if conf.dnn_arch['heatmap'] else nn.CrossEntropyLoss()
+    net, loss_fn = set_network(set_train=False)
+
 
     optimiser = optim.Adam(net.parameters(), lr=1e-4)
 
     fol_name = conf.filenames['net_folder_path']
 
     print(fol_name)
-    ep = 16
+    ep= 40
+
 
     net_name = 'net_ep_%s.pt'%ep
     net_path = os.path.join(fol_name, net_name)
@@ -50,18 +47,22 @@ def main():
     net.load_state_dict(checkpoint['model'])
     optimiser.load_state_dict(checkpoint['optimizer'])
 
+   
     # %% 
     # loading dataset (QUANTITATIVE RESULTS)--------------------------------------
 
 
-    seq_list = ['conversation1_t3', 'femalemonologue2_t3', 'interactive1_t2', 'interactive4_t3', 'malemonologue2_t3']
-    # seq_list = ['all']
+    # seq_list = ['conversation1_t3', 'femalemonologue2_t3', 'interactive1_t2', 'interactive4_t3', 'malemonologue2_t3']
+    seq_list = ['all']
 
     seq_compare = True if len(seq_list) > 1 else False
 
-    seq_type = 'all' if seq_list[0]=='all' else 'seq'
-    contrast_vid_setting = [False, True]
-    # contrast_vid_setting = [False]
+    if seq_list[0] == 'all':
+        seq_type = 'all'
+    else:
+        seq_type = 'seq'
+    
+    contrast_vid_setting = [False]
 
     for contrast_vid in contrast_vid_setting:
 
@@ -74,7 +75,6 @@ def main():
 
         print(save_file)
 
-        # if seq_compare:
         acc_mat = np.zeros((len(seq_list), len(seq_list)))
         acc_pos_mat = np.zeros((len(seq_list), len(seq_list)))
         acc_neg_mat = np.zeros((len(seq_list), len(seq_list)))
@@ -95,7 +95,8 @@ def main():
 
                     loader = DataLoader(data_all, batch_size=16, shuffle=True, num_workers=0, pin_memory=True)
 
-                    acc , acc_pos, acc_neg = Evaluator(net, loader=loader, epochs=10, contrast_vid=contrast_vid, verbose=False)
+                    # acc , acc_pos, acc_neg = Evaluator(net, loader=loader, epochs=2, contrast_vid=contrast_vid, verbose=False)
+                    acc , acc_pos, acc_neg = Eval_contrast(net, loader=loader, loss_fn=loss_fn,  epochs=1, contrast_vid=contrast_vid, verbose=False)
 
                     acc_mat[i,j] = acc
                     acc_pos_mat[i,j] = acc_pos
@@ -106,21 +107,21 @@ def main():
                     )
 
         print('\ninter-video accuracy matrix:\n', file=open(save_file, "a"))
-        print('acc_total: \n{} \n\nacc_pos: \n{} \n\nacc_neg: \n{}\n\n.'.format(acc_mat, acc_pos_mat, acc_neg_mat), file=open(save_file, "a"))
+        print('epochs: {} \n\nacc_total: \n{} \n\nacc_pos: \n{} \n\nacc_neg: \n{}\n\n.'.format(ep, acc_mat, acc_pos_mat, acc_neg_mat), file=open(save_file, "a"))
     
 
-    # LOADING DATASET -- QUALITATIVE RESULTS -------------->
+    # # LOADING DATASET -- QUALITATIVE RESULTS -------------->
 
 # %%
-    # # # evaluating  ------------------------------------------
+    # evaluating  ------------------------------------------
 
     # seq_list = ['conversation1_t3', 'femalemonologue2_t3', 'interactive1_t2', 'interactive4_t3', 'malemonologue2_t3']
 
-    # for seq in seq_list:
+    # for i, seq in enumerate(seq_list):
 
     #     _ , _ , data_all = get_train_val(train_or_test='test', sequences=seq)
 
-    #     loader = DataLoader(data_all, batch_size=2, shuffle=True, num_workers=0, pin_memory=True)
+    #     loader = DataLoader(data_all, batch_size=1, shuffle=True, num_workers=0, pin_memory=True)
 
     #     device = (torch.device('cuda') if torch.cuda.is_available()
     #         else torch.device('cpu'))
@@ -128,7 +129,36 @@ def main():
     #     net.to(device=device)
     #     net.eval()
 
-    #     acc , acc_pos, acc_neg = Evaluator(net, loader=loader, epochs=1, contrast_vid=False, verbose=True, count=2)
+    #     num_plots = 3
+    #     plt.figure(i+1, figsize=(12, 6))
+
+    #     for idx, data in enumerate(loader):
+
+    #         while idx < num_plots:
+    #             imgs_all, audio_all, cam_all, _, _ = create_samples(data, augment=False, device=device, create_contrast=False)
+    #             score, heatmap = net(imgs_all, audio_all, cam_all)
+
+    #             heatmap = heatmap.cpu().squeeze(0).detach().numpy()
+
+    #             imgs_all = imgs_all.cpu().squeeze(0).permute(1,2,0).detach().numpy()
+
+    #             plt.subplot(2, num_plots, idx+1)
+    #             plt.imshow(imgs_all, aspect='equal')
+    #             plt.axis('off')
+
+    #             plt.subplot(2, num_plots, num_plots+idx+1)
+    #             plt.imshow(heatmap, vmin=0, vmax=1, aspect='equal')
+    #             plt.colorbar()
+    #             plt.title('score:%s'%round(score.item(), 2))
+    #             plt.axis('off')
+
+    #             break
+
+    #     fig_path = os.path.join(conf.filenames['net_folder_path'], conf.filenames['train_val'])
+    #     num = len(os.listdir(fig_path)) + 1
+    #     plt.savefig(os.path.join(conf.filenames['net_folder_path'], conf.filenames['train_val'], 'img_%s'%num + '.png'))
+    #     plt.close()
+        # plt.show()
 
 
     # for idx, data in enumerate(loader):

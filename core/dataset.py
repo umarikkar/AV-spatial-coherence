@@ -168,6 +168,9 @@ class dataset_from_scratch(Dataset):
         cam = np.int(full_name[-2:])
         initial_time = np.float(self.csv_list[self.frame_idx_list[audio_seg]][1])
 
+        pseudo_label = self.csv_list[self.frame_idx_list[audio_seg]][-2]
+        speech_activity = self.csv_list[self.frame_idx_list[audio_seg]][-1]
+
         cam_vid = str(cam)
 
         if cam < 12:
@@ -192,7 +195,7 @@ class dataset_from_scratch(Dataset):
         tensor = tensor.astype('float32')
         input_features = torch.from_numpy(tensor)
 
-        return input_features, cam, img_tensor, full_name, initial_time
+        return input_features, cam, img_tensor, full_name, initial_time, pseudo_label, speech_activity
 
         
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -229,6 +232,8 @@ class dataset_from_hdf5(Dataset):
         # metadata
         full_name = self.h5_file['sequence'][audio_seg]
         init_time = self.h5_file['initial_time'][audio_seg]
+        pseudo_labels = self.h5_file['pseudo_labels'][audio_seg]
+        speech_activity = self.h5_file['speech_activity'][audio_seg]
 
         # getting sequences only or full samples
         if not self.seq:
@@ -245,10 +250,13 @@ class dataset_from_hdf5(Dataset):
         features = features.astype('float32')
         input_features = torch.from_numpy(features)
 
+        # if conf.training_param['frame_seq']:
+        # imgs = transforms.Resize((112, 224))(imgs)
+
         # input_features[-1,:,:] = self.t_audio(input_features[-1,:,:].unsqueeze(0)).squeeze(0)
         # imgs = self.t_image(imgs)
 
-        return input_features, cam, imgs, full_name, init_time
+        return input_features, cam, imgs, full_name, init_time, pseudo_labels, speech_activity
     
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------------

@@ -1,0 +1,94 @@
+----------------------------------------------------------------------------------------------------
+112 X 224 IMAGES
+
+for sequence: conversation1_t3, size: 396, acc: 70.83%, acc_pos: 73.86%, acc_neg: 67.63%
+for sequence: ['conversation1_t3', 'femalemonologue2_t3'], size: 638, acc: 76.71%, acc_pos: 76.49%, acc_neg: 76.94%
+for sequence: ['conversation1_t3', 'interactive1_t2'], size: 690, acc: 72.23%, acc_pos: 71.67%, acc_neg: 72.8%
+for sequence: ['conversation1_t3', 'interactive4_t3'], size: 572, acc: 72.27%, acc_pos: 68.88%, acc_neg: 75.74%
+for sequence: ['conversation1_t3', 'malemonologue2_t3'], size: 638, acc: 75.34%, acc_pos: 72.18%, acc_neg: 78.57%
+for sequence: femalemonologue2_t3, size: 484, acc: 74.26%, acc_pos: 73.66%, acc_neg: 74.87%
+for sequence: ['femalemonologue2_t3', 'interactive1_t2'], size: 536, acc: 74.07%, acc_pos: 74.44%, acc_neg: 73.69%
+for sequence: ['femalemonologue2_t3', 'interactive4_t3'], size: 418, acc: 71.41%, acc_pos: 70.93%, acc_neg: 71.9%
+for sequence: ['femalemonologue2_t3', 'malemonologue2_t3'], size: 484, acc: 75.77%, acc_pos: 75.21%, acc_neg: 76.35%
+for sequence: interactive1_t2, size: 294, acc: 65.94%, acc_pos: 68.37%, acc_neg: 63.37%
+for sequence: ['interactive1_t2', 'interactive4_t3'], size: 470, acc: 66.25%, acc_pos: 63.83%, acc_neg: 68.75%
+for sequence: ['interactive1_t2', 'malemonologue2_t3'], size: 536, acc: 71.67%, acc_pos: 68.66%, acc_neg: 74.76%
+for sequence: interactive4_t3, size: 176, acc: 62.58%, acc_pos: 53.69%, acc_neg: 71.79%
+for sequence: ['interactive4_t3', 'malemonologue2_t3'], size: 418, acc: 65.88%, acc_pos: 59.93%, acc_neg: 71.97%
+for sequence: malemonologue2_t3, size: 242, acc: 69.25%, acc_pos: 66.32%, acc_neg: 72.29%
+
+inter-video accuracy matrix:
+
+epochs: 16 
+
+acc_total: 
+[[70.83 76.71 72.23 72.27 75.34]
+ [ 0.   74.26 74.07 71.41 75.77]
+ [ 0.    0.   65.94 66.25 71.67]
+ [ 0.    0.    0.   62.58 65.88]
+ [ 0.    0.    0.    0.   69.25]] 
+
+acc_pos: 
+[[73.86 76.49 71.67 68.88 72.18]
+ [ 0.   73.66 74.44 70.93 75.21]
+ [ 0.    0.   68.37 63.83 68.66]
+ [ 0.    0.    0.   53.69 59.93]
+ [ 0.    0.    0.    0.   66.32]] 
+
+acc_neg: 
+[[67.63 76.94 72.8  75.74 78.57]
+ [ 0.   74.87 73.69 71.9  76.35]
+ [ 0.    0.   63.37 68.75 74.76]
+ [ 0.    0.    0.   71.79 71.97]
+ [ 0.    0.    0.    0.   72.29]]
+
+ 
+
+
+
+----------------------------------------------------------------------------------------------------
+224 X 224 IMAGES
+
+.
+for sequence: conversation1_t3, size: 396, acc: 73.98%, acc_pos: 83.46%, acc_neg: 63.95%
+for sequence: ['conversation1_t3', 'femalemonologue2_t3'], size: 638, acc: 82.03%, acc_pos: 86.52%, acc_neg: 77.44%
+for sequence: ['conversation1_t3', 'interactive1_t2'], size: 690, acc: 79.14%, acc_pos: 87.75%, acc_neg: 70.36%
+for sequence: ['conversation1_t3', 'interactive4_t3'], size: 572, acc: 79.36%, acc_pos: 85.4%, acc_neg: 73.15%
+for sequence: ['conversation1_t3', 'malemonologue2_t3'], size: 638, acc: 78.22%, acc_pos: 76.8%, acc_neg: 79.66%
+for sequence: femalemonologue2_t3, size: 484, acc: 76.09%, acc_pos: 79.55%, acc_neg: 72.54%
+for sequence: ['femalemonologue2_t3', 'interactive1_t2'], size: 536, acc: 80.5%, acc_pos: 93.28%, acc_neg: 67.46%
+for sequence: ['femalemonologue2_t3', 'interactive4_t3'], size: 418, acc: 80.69%, acc_pos: 91.51%, acc_neg: 69.61%
+for sequence: ['femalemonologue2_t3', 'malemonologue2_t3'], size: 484, acc: 75.52%, acc_pos: 79.03%, acc_neg: 71.95%
+for sequence: interactive1_t2, size: 294, acc: 76.19%, acc_pos: 91.67%, acc_neg: 60.15%
+for sequence: ['interactive1_t2', 'interactive4_t3'], size: 470, acc: 77.47%, acc_pos: 92.34%, acc_neg: 62.34%
+for sequence: ['interactive1_t2', 'malemonologue2_t3'], size: 536, acc: 75.95%, acc_pos: 79.1%, acc_neg: 72.72%
+for sequence: interactive4_t3, size: 176, acc: 79.21%, acc_pos: 90.34%, acc_neg: 67.54%
+for sequence: ['interactive4_t3', 'malemonologue2_t3'], size: 418, acc: 76.07%, acc_pos: 75.48%, acc_neg: 76.65%
+for sequence: malemonologue2_t3, size: 242, acc: 68.85%, acc_pos: 65.5%, acc_neg: 72.36%
+
+inter-video accuracy matrix:
+
+epochs: 16 
+
+acc_total: 
+[[73.98 82.03 79.14 79.36 78.22]
+ [ 0.   76.09 80.5  80.69 75.52]
+ [ 0.    0.   76.19 77.47 75.95]
+ [ 0.    0.    0.   79.21 76.07]
+ [ 0.    0.    0.    0.   68.85]] 
+
+acc_pos: 
+[[83.46 86.52 87.75 85.4  76.8 ]
+ [ 0.   79.55 93.28 91.51 79.03]
+ [ 0.    0.   91.67 92.34 79.1 ]
+ [ 0.    0.    0.   90.34 75.48]
+ [ 0.    0.    0.    0.   65.5 ]] 
+
+acc_neg: 
+[[63.95 77.44 70.36 73.15 79.66]
+ [ 0.   72.54 67.46 69.61 71.95]
+ [ 0.    0.   60.15 62.34 72.72]
+ [ 0.    0.    0.   67.54 76.65]
+ [ 0.    0.    0.    0.   72.36]]
+
+.

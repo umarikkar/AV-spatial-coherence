@@ -3,6 +3,14 @@ import numpy as np
 import os
 import cv2
 
+import torch.nn as nn
+from fn_networks import MergeNet, AVOL_Net, AVE_Net, AVE_Net_temporal, AVOL_Net_temporal ,AVE_Net2, AVOL_Net_v2
+
+from fn_nets_v2 import AVOL, EZ_VSL, AVE
+from fn_trainer import loss_AVE, loss_AVOL, loss_VSL
+
+import core.config as conf
+
 
 def MakeFolders(sequence_path, video=False):
 
@@ -117,3 +125,22 @@ def SaveVideoFrames(data_path):
     print(count2)
     return
             
+
+# ------ setting the network -----------------------------------------------------------------------
+def set_network(set_train=True):
+    if conf.dnn_arch['AVOL']:
+        net = AVOL(set_train=set_train)
+        loss_fn = loss_AVOL()
+    elif conf.dnn_arch['AVE']:
+        net = AVE(set_train=True)
+        loss_fn = loss_AVE()
+    elif conf.dnn_arch['EZ_VSL']:
+        net = EZ_VSL(set_train=set_train)
+        loss_fn = loss_VSL()
+    else:
+        net = MergeNet()
+        loss_fn = nn.BCELoss() if conf.dnn_arch['heatmap'] else nn.CrossEntropyLoss()
+
+    print('net: ', type(net), '\nloss: ', loss_fn)
+
+    return net, loss_fn
