@@ -1,21 +1,15 @@
 
 import os
 import random
-from math import ceil, floor
-from multiprocessing.dummy import freeze_support
-from pathlib import Path
 
-import numpy as np
 import torch
-import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
 import core.config as conf
-import utils.utils as utils
-from core.dataset import get_train_val
-from fn_trainer import Trainer_contrast, Trainer_binary
-from core.helper_fns import set_network
+from fn.dataset import get_train_val
+from fn.train_eval import Trainer
+from fn.nets import set_network
 
 
 
@@ -42,7 +36,7 @@ def main():
         fol_name = conf.filenames['net_folder_path']
 
         print(fol_name)
-        ep = 28
+        ep =  20
 
         net_name = 'net_ep_%s.pt'%ep
         net_path = os.path.join(fol_name, net_name)
@@ -68,10 +62,7 @@ def main():
 
     print('starting epochs: {}\ntotal epochs: {}\n'.format(ep, epochs))
 
-    if conf.training_param['train_binary']:
-        Trainer_binary(net,[ep+1, epochs], loss_fn, optimiser, train_loader, val_loader=val_loader)
-    else:
-        Trainer_contrast(net,[ep+1, epochs], loss_fn, optimiser, train_loader, val_loader=val_loader)
+    Trainer(net,[ep+1, epochs], loss_fn, optimiser, train_loader, val_loader=val_loader)
 
 
 if __name__=='__main__':

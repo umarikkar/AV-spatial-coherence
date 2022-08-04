@@ -14,36 +14,42 @@ from torchvision import transforms
 
 
 # ------ setting the file name ---------------------------------------------------------------------
-def set_filename():
+def set_filename(name='AVE', 
+                toy_params=(False, 128),
+                print_path=False
+                ):
+
     mic_name = 'MC' if logmelspectro['multi_mic'] else 'SC'
 
-    toy_params=training_param['toy_params']
     if toy_params[0]: 
         net_size = str(toy_params[1])
     else:
         net_size = ''
 
-    if dnn_arch['AVOL']:
-        fol_name = mic_name + net_size + '_AVOL_r18_v2'
-    elif dnn_arch['AVE']:
-        fol_name = mic_name + net_size + '_AVE'
-    elif dnn_arch['EZ_VSL']:
-        fol_name = mic_name +net_size + '_EZ_VSL'
-    else:
-        if not dnn_arch['vid_custom']:
-            if dnn_arch['vid_pretrained']:
-                if not dnn_arch['vid_freeze']:
-                    fol_name = mic_name + '_' + net_size + '_vgg_flex' # MultiChannel_sz_vgg_flex
-                else:
-                    fol_name = mic_name + '_' + net_size + '_vgg_freeze' # MultiChannel_sz_vgg_freeze
-            else:
-                fol_name = mic_name + '_' + net_size + '_vgg' # MultiChannel_sz_vgg_flex
-        else:
-            fol_name = mic_name + '_' + net_size # MultiChannel_sz
+    fol_name = mic_name + net_size + '_' + name
 
-        if dnn_arch['heatmap']:
-            fol_name = fol_name + '_BCE'
+    """
+    # if name=='AVOL':
+    #     fol_name = mic_name + net_size + '_AVOL'
+    # elif name=='AVE':
+    #     fol_name = mic_name + net_size + '_AVE'
+    # elif name=='EZ_VSL':
+    #     fol_name = mic_name +net_size + '_EZ_VSL'
+    # else:
+    #     if not dnn_arch['vid_custom']:
+    #         if dnn_arch['vid_pretrained']:
+    #             if not dnn_arch['vid_freeze']:
+    #                 fol_name = mic_name + '_' + net_size + '_vgg_flex' # MultiChannel_sz_vgg_flex
+    #             else:
+    #                 fol_name = mic_name + '_' + net_size + '_vgg_freeze' # MultiChannel_sz_vgg_freeze
+    #         else:
+    #             fol_name = mic_name + '_' + net_size + '_vgg' # MultiChannel_sz_vgg_flex
+    #     else:
+    #         fol_name = mic_name + '_' + net_size # MultiChannel_sz
 
+    #     if dnn_arch['heatmap']:
+    #         fol_name = fol_name + '_BCE'
+    """
 
     if training_param['vid_contrast']:
         fol_name = fol_name + '_vid'
@@ -51,8 +57,11 @@ def set_filename():
     if training_param['frame_seq']:
         fol_name = fol_name + '_MF'
 
-    fol_name = fol_name + '_filtered'
+    if not name=='AVE' and dnn_arch['ave_backbone']:
+        fol_name = fol_name + '_pretrained'
 
+    if data_param['filter_silent']:
+        fol_name = fol_name + '_filtered'
 
     file_path = os.path.join(os.getcwd(), 'results', 'checkpoints', fol_name)  # results/checkpoints/MultiChannel_sz
 
@@ -65,7 +74,8 @@ def set_filename():
         if not os.path.exists(img_path):
             os.mkdir(img_path)
 
-    print('network path', file_path)
+    if print_path:
+        print('network path', file_path)
 
     return file_path
 
@@ -88,13 +98,16 @@ dnn_arch = {
     'vid_pretrained': True,
     'vid_freeze':True,
 
+    'ave_backbone': True,
+
     'aud_custom': True,      
     'aud_pretrained': False,
     'aud_freeze': False,
 
-    'AVOL':False, 
-    'AVE': True,
-    'EZ_VSL':False,
+    'net_name':'AVOL',
+    # AVE, EZ_VSL
+
+    'ave_backbone':False
 
 }
 
@@ -106,9 +119,9 @@ training_param = {
 
     'optimizer': torch.optim.Adam,
     #'criterion': nn.CrossEntropyLoss,
-    'learning_rate': 0.0001, # this is used if user does not provide another lr with the parser
-    'epochs': 16, # this is used if user does not provide the epoch number with the parser
-    'batch_size': 16,
+    'learning_rate': 0.001, # this is used if user does not provide another lr with the parser
+    'epochs': 60, # this is used if user does not provide the epoch number with the parser
+    'batch_size': 32,
     'frame_len_samples': input['frame_len_sec'] * input['sr'], # number of audio samples in 2 sec
 
     'frame_seq': False,
@@ -116,7 +129,7 @@ training_param = {
 
     'toy_params': (False, 128),
 
-    'inference': False,
+    'inference': True,
     'vid_contrast': False,
 
     'device': device,
@@ -133,17 +146,20 @@ data_param = {
         transforms.ColorJitter((0.6, 1.4), (0.6, 1.4), (0.6, 1.4), (-0.2, 0.2)),
         transforms.RandomGrayscale(0.2),
         transforms.RandomInvert(p=0.5),
+        transforms.RandomVerticalFlip(p=0.5),
         ]) ,
 
     't_audio' : transforms.Compose([
         transforms.RandomAutocontrast(p=0.5),
         transforms.RandomAdjustSharpness(2),
-        ])
+        ]) ,
+
+    'filter_silent':True,
 }
 
 logmelspectro = {
     'get_gcc':  True,
-    'multi_mic': False,
+    'multi_mic': True,
     'mfcc_azimuth_only': True, # False for using all the 89 look dir, True only the 15 central-horizontal look dir
     'winlen': 512, # samples
     'hoplen': 100, # samples
@@ -155,7 +171,9 @@ logmelspectro = {
 
 
 filenames = {
-    'net_folder_path': set_filename(),
+    'net_folder_path': set_filename(name=dnn_arch['net_name'], 
+                            toy_params=training_param['toy_params'],
+                            print_path=True),
     'train_val': 'test',
 }
 

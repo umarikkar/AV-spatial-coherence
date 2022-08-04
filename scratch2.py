@@ -10,9 +10,9 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 
 import core.config as conf
-from core.dataset import dataset_from_scratch, get_train_val
+from fn.dataset import dataset_from_scratch, get_train_val
 
-from fn_networks import AVOL_Net
+from archived_scripts.fn_networks import AVOL_Net
 
 # base_path = os.getcwd()
 

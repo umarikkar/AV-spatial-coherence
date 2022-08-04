@@ -1,30 +1,22 @@
 
 import os
 import random
-from math import ceil, floor
-from multiprocessing.dummy import freeze_support
-from pathlib import Path
 
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
 import core.config as conf
-import utils.utils as utils
-from core.dataset import get_train_val
-from core.helper_fns import set_network
-from fn_networks import MergeNet, AVOL_Net, AVE_Net
-from fn_trainer import Trainer_binary, Eval, Eval_contrast, create_samples
+from fn.dataset import get_train_val, create_samples
+from fn.nets import set_network
+from fn.train_eval import Evaluator
 
 import matplotlib.pyplot as plt
-
 
 def main():
 
     random.seed(5)
-    inference=True
 
     # loading network ----------------------------------------
 
@@ -35,147 +27,153 @@ def main():
 
     fol_name = conf.filenames['net_folder_path']
 
-    print(fol_name)
-    ep= 40
+    # epoch_settings = np.linspace(4, 40, 10).astype('int')
+    epoch_settings = [52]
+
+    for ep in epoch_settings:
+
+        # ep= 40
 
 
-    net_name = 'net_ep_%s.pt'%ep
-    net_path = os.path.join(fol_name, net_name)
+        net_name = 'net_ep_%s.pt'%ep
+        net_path = os.path.join(fol_name, net_name)
 
-    checkpoint = torch.load(net_path)
+        checkpoint = torch.load(net_path)
 
-    net.load_state_dict(checkpoint['model'])
-    optimiser.load_state_dict(checkpoint['optimizer'])
+        net.load_state_dict(checkpoint['model'])
+        optimiser.load_state_dict(checkpoint['optimizer'])
 
-   
-    # %% 
-    # loading dataset (QUANTITATIVE RESULTS)--------------------------------------
-
-
-    # seq_list = ['conversation1_t3', 'femalemonologue2_t3', 'interactive1_t2', 'interactive4_t3', 'malemonologue2_t3']
-    seq_list = ['all']
-
-    seq_compare = True if len(seq_list) > 1 else False
-
-    if seq_list[0] == 'all':
-        seq_type = 'all'
-    else:
-        seq_type = 'seq'
     
-    contrast_vid_setting = [False]
-
-    for contrast_vid in contrast_vid_setting:
-
-        if contrast_vid:
-            eval_name = 'eval_results_%s_vid.txt'%seq_type
-        else:
-            eval_name = 'eval_results_%s.txt'%seq_type
-
-        save_file = os.path.join(conf.filenames['net_folder_path'], eval_name)
-
-        print(save_file)
-
-        acc_mat = np.zeros((len(seq_list), len(seq_list)))
-        acc_pos_mat = np.zeros((len(seq_list), len(seq_list)))
-        acc_neg_mat = np.zeros((len(seq_list), len(seq_list)))
-
-        for i, seq1 in enumerate(seq_list):
-
-            for j, seq2 in enumerate(seq_list):
-
-                # if i==j:
-
-                if j >= i:   
-                    if seq1 != seq2:
-                        seq = [seq1, seq2]
-                    else:
-                        seq = seq1
-
-                    _ , _ , data_all = get_train_val(train_or_test='test', sequences=seq)
-
-                    loader = DataLoader(data_all, batch_size=16, shuffle=True, num_workers=0, pin_memory=True)
-
-                    # acc , acc_pos, acc_neg = Evaluator(net, loader=loader, epochs=2, contrast_vid=contrast_vid, verbose=False)
-                    acc , acc_pos, acc_neg = Eval_contrast(net, loader=loader, loss_fn=loss_fn,  epochs=1, contrast_vid=contrast_vid, verbose=False)
-
-                    acc_mat[i,j] = acc
-                    acc_pos_mat[i,j] = acc_pos
-                    acc_neg_mat[i,j] = acc_neg
-
-                    print('for sequence: {}, size: {}, acc: {}%, acc_pos: {}%, acc_neg: {}%'.format(seq, len(data_all), acc, acc_pos, acc_neg),
-                            file=open(save_file, "a")
-                    )
-
-        print('\ninter-video accuracy matrix:\n', file=open(save_file, "a"))
-        print('epochs: {} \n\nacc_total: \n{} \n\nacc_pos: \n{} \n\nacc_neg: \n{}\n\n.'.format(ep, acc_mat, acc_pos_mat, acc_neg_mat), file=open(save_file, "a"))
-    
-
-    # # LOADING DATASET -- QUALITATIVE RESULTS -------------->
-
-# %%
-    # evaluating  ------------------------------------------
-
-    # seq_list = ['conversation1_t3', 'femalemonologue2_t3', 'interactive1_t2', 'interactive4_t3', 'malemonologue2_t3']
-
-    # for i, seq in enumerate(seq_list):
-
-    #     _ , _ , data_all = get_train_val(train_or_test='test', sequences=seq)
-
-    #     loader = DataLoader(data_all, batch_size=1, shuffle=True, num_workers=0, pin_memory=True)
-
-    #     device = (torch.device('cuda') if torch.cuda.is_available()
-    #         else torch.device('cpu'))
-
-    #     net.to(device=device)
-    #     net.eval()
-
-    #     num_plots = 3
-    #     plt.figure(i+1, figsize=(12, 6))
-
-    #     for idx, data in enumerate(loader):
-
-    #         while idx < num_plots:
-    #             imgs_all, audio_all, cam_all, _, _ = create_samples(data, augment=False, device=device, create_contrast=False)
-    #             score, heatmap = net(imgs_all, audio_all, cam_all)
-
-    #             heatmap = heatmap.cpu().squeeze(0).detach().numpy()
-
-    #             imgs_all = imgs_all.cpu().squeeze(0).permute(1,2,0).detach().numpy()
-
-    #             plt.subplot(2, num_plots, idx+1)
-    #             plt.imshow(imgs_all, aspect='equal')
-    #             plt.axis('off')
-
-    #             plt.subplot(2, num_plots, num_plots+idx+1)
-    #             plt.imshow(heatmap, vmin=0, vmax=1, aspect='equal')
-    #             plt.colorbar()
-    #             plt.title('score:%s'%round(score.item(), 2))
-    #             plt.axis('off')
-
-    #             break
-
-    #     fig_path = os.path.join(conf.filenames['net_folder_path'], conf.filenames['train_val'])
-    #     num = len(os.listdir(fig_path)) + 1
-    #     plt.savefig(os.path.join(conf.filenames['net_folder_path'], conf.filenames['train_val'], 'img_%s'%num + '.png'))
-    #     plt.close()
-        # plt.show()
+        # %% 
+        # loading dataset (QUANTITATIVE RESULTS)--------------------------------------
 
 
-    # for idx, data in enumerate(loader):
+        seq_list = ['conversation1_t3', 'femalemonologue2_t3', 'interactive1_t2', 'interactive4_t3', 'malemonologue2_t3']
+        # # seq_list = ['all']
 
-    #     aud = data[0].to(device=device)
-    #     cam = data[1].to(device=device)
-    #     img = data[2].to(device=device).squeeze(1)
+        # seq_compare = True if len(seq_list) > 1 else False
 
-    #     _, heatmap = net(img, aud, cam)
+        # if seq_list[0] == 'all':
+        #     seq_type = 'all'
+        # else:
+        #     seq_type = 'seq'
+        
+        # contrast_vid_setting = [False]
 
-    #     print(idx)
-    #     if idx==10:
-    #         break
+        # for contrast_vid in contrast_vid_setting:
 
-        # pass
+        #     if contrast_vid:
+        #         eval_name = 'eval_results_%s_vid.txt'%seq_type
+        #     else:
+        #         eval_name = 'eval_results_%s.txt'%seq_type
 
-    #     # acc , acc_pos, acc_neg = Evaluator(net, loader=loader, epochs=10, contrast_vid=False, verbose=False)
+        #     save_file = os.path.join(conf.filenames['net_folder_path'], eval_name)
+
+        #     print('save file:', save_file)
+
+        #     acc_mat = np.zeros((len(seq_list), len(seq_list)))
+        #     acc_pos_mat = np.zeros((len(seq_list), len(seq_list)))
+        #     acc_neg_mat = np.zeros((len(seq_list), len(seq_list)))
+
+        #     for i, seq1 in enumerate(seq_list):
+
+        #         for j, seq2 in enumerate(seq_list):
+
+        #             # if i==j:
+
+        #             if j >= i:   
+        #                 if seq1 != seq2:
+        #                     seq = [seq1, seq2]
+        #                 else:
+        #                     seq = seq1
+
+        #                 _ , _ , data_all = get_train_val(train_or_test='test', sequences=seq)
+
+        #                 loader = DataLoader(data_all, batch_size=16, shuffle=True, num_workers=0, pin_memory=True)
+
+        #                 acc, acc_pos, acc_neg = Evaluator(net, loader=loader, loss_fn=loss_fn,  epochs=1, contrast_vid=contrast_vid, verbose=False)
+
+        #                 acc_mat[i,j] = acc
+        #                 acc_pos_mat[i,j] = acc_pos
+        #                 acc_neg_mat[i,j] = acc_neg
+
+        #                 print_txt = 'for sequence: {}, size: {}, acc: {}%, acc_pos: {}%, acc_neg: {}%'.format(seq, len(data_all), acc, acc_pos, acc_neg)
+
+        #                 print(print_txt, file=open(save_file, "a"))
+        #                 print(print_txt)
+                    
+
+        #     print_txt = '\ninter-video accuracy matrix:\nepochs: {} \n\nacc_total: \n{} \n\nacc_pos: \n{} \n\nacc_neg: \n{}\n\n.'.format(ep, acc_mat, acc_pos_mat, acc_neg_mat)
+        #     print(print_txt, file=open(save_file, "a"))
+        #     print(print_txt)
+        
+
+        # # LOADING DATASET -- QUALITATIVE RESULTS -------------->
+
+    # %%
+        # evaluating  ------------------------------------------
+
+        # seq_list = ['conversation1_t3', 'femalemonologue2_t3', 'interactive1_t2', 'interactive4_t3', 'malemonologue2_t3']
+        seq_list = ['all']
+
+        for i, seq in enumerate(seq_list):
+
+            _ , _ , data_all = get_train_val(train_or_test='test', sequences=seq)
+
+            loader = DataLoader(data_all, batch_size=1, shuffle=True, num_workers=0, pin_memory=True)
+
+            device = (torch.device('cuda') if torch.cuda.is_available()
+                else torch.device('cpu'))
+
+            net.to(device=device)
+            net.eval()
+
+            num_plots = 5
+            plt.figure(i+1, figsize=(15, 6))
+
+            count=0
+
+            for _, data in enumerate(loader):
+
+                if count < num_plots:
+
+                    if data[6] == [b'SPEAKING']:
+
+                        samples = create_samples(data, augment=False, device=device, return_mat=False)
+                        imgs_all = samples['imgs_all']
+                        score, heatmap = net(samples['imgs_all'], samples['audio_all'], samples['cam_all'] )
+
+                        heatmap = heatmap.cpu().squeeze(0).detach().numpy()
+
+                        imgs_all = imgs_all.cpu().squeeze(0).permute(1,2,0).detach().numpy()
+
+                        plt.subplot(2, num_plots, count+1)
+                        plt.imshow(imgs_all, aspect='equal')
+                        plt.axis('off')
+
+                        plt.subplot(2, num_plots, num_plots+count+1)
+                        plt.imshow(heatmap, vmin=0, vmax=1, aspect='equal')
+                        # plt.colorbar()
+                        plt.title('score:%s'%round(score.item(), 2))
+                        plt.axis('off')
+
+                        count += 1
+
+                else:
+
+                    plt.suptitle('epochs: '+str(ep))
+
+                    fig_path = os.path.join(conf.filenames['net_folder_path'], conf.filenames['train_val'])
+                    num = len(os.listdir(fig_path)) + 1
+                    plt.savefig(os.path.join(conf.filenames['net_folder_path'], conf.filenames['train_val'], 'img_%s'%num + '.png'))
+                    plt.close()
+                    plt.show()
+
+                    break
+
+
+
+
 
 
 
