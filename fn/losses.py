@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 from einops import rearrange
+import matplotlib.pyplot as plt
+
 
 import core.config as conf
 
@@ -14,7 +16,7 @@ class loss_VSL(nn.Module):
         self.alpha=alpha
         self.beta=beta
 
-    def get_score(self, scores_raw, neg_mask):
+    def forward(self, scores_raw, neg_mask):
 
         scores = torch.exp(scores_raw/self.tau)*neg_mask
 
@@ -30,15 +32,62 @@ class loss_VSL(nn.Module):
         return loss
 
 
+class loss_VSL_hard(nn.Module):
+
+    def __init__(self, tau=0.2, eps=1e-4, alpha=0.5):
+        super().__init__()
+        self.tau=tau
+        self.eps=eps
+        self.alpha=alpha
+
+    def get_score(self, scores_raw, neg_mask):
+
+        scores_all = torch.exp(scores_raw/self.tau)*neg_mask
+
+        sc_raw = scores_raw.cpu().detach().numpy()
+        sc_all = scores_all.cpu().detach().numpy()
+
+        # plt.figure()
+        # plt.subplot(1,2,1)
+        # plt.imshow(sc_raw)
+        # plt.subplot(1,2,2)
+        # plt.imshow(sc_all)
+        # plt.show()
+
+        bs = scores_all.shape[0] // 2
+
+        scores_easy = scores_all[:bs, :bs]
+        scores_hard = scores_all[bs:, bs:]
+
+        s_pos = scores_easy.diag()
+        s_hard = scores_hard.diag() + s_pos
+        s_neg_a = scores_easy.sum(dim=1)
+        s_neg_v = scores_easy.sum(dim=0) 
+        
+        L_av = (-1 * torch.log10((s_pos + self.eps) / (s_neg_a + self.eps))) . sum()
+        L_va = (-1 * torch.log10((s_pos + self.eps) / (s_neg_v + self.eps))) . sum()
+        L_hd = (-1 * torch.log10((s_pos + self.eps) / (bs*s_hard + self.eps))) . sum()
+
+        norm_sum = self.alpha*neg_mask[:bs, :bs].sum() + (1-self.alpha)*bs*bs
+
+        L = (self.alpha*(L_va+L_av) + (1-self.alpha)*L_hd) / (norm_sum + self.eps)
+
+        return L
+
+
     def forward(self, scores_raw, neg_mask):
 
-        bs = scores_raw.shape[0]
+        bs = scores_raw.shape[0] // 2
 
         loss = self.get_score(scores_raw, neg_mask)
 
-        labels = (-1*torch.ones((bs, bs)) + 2*torch.eye(bs)).to(device=conf.training_param['device'])
+        zer = torch.zeros((bs,bs))
+        one = torch.ones((bs, bs))
+        ide = torch.eye(bs)
 
-        loss_perfect = self.get_score(labels, neg_mask)
+        labels = torch.cat((torch.cat((-1*one + 2*ide, zer), dim=0), torch.cat((zer, -1*ide), dim=0)), dim=1)
+        
+        loss_perfect = self.get_score(labels.to(device=conf.training_param['device']), neg_mask)
 
         return loss, loss_perfect
 
@@ -66,7 +115,7 @@ class loss_AVOL(nn.Module):
         return loss
 
 
-    def forward(self, scores_raw, neg_mask, device=conf.training_param['device'], return_acc=False):
+    def forward(self, scores_raw, neg_mask, device=conf.training_param['device'], return_err=False):
 
         loss = self.get_score(scores_raw, neg_mask)
         labels = torch.eye(len(scores_raw)).to(device=device)

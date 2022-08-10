@@ -1,9 +1,10 @@
+from cgitb import small
 from sklearn.datasets import load_files
 import torch
 import torch.nn as nn
 from einops import rearrange
 from torchvision.models import resnet18
-from fn.losses import loss_AVE, loss_AVOL, loss_VSL
+from fn.losses import loss_AVE, loss_AVOL, loss_VSL, loss_VSL_hard
 from archived_scripts.fn_networks import MergeNet
 import os
 import core.config as conf
@@ -18,9 +19,10 @@ def set_network(set_train=True, net_name=conf.dnn_arch['net_name'], print_net=Tr
     elif net_name=='AVE':
         net = AVE(set_train=set_train)
         loss_fn = loss_AVE()
-    elif net_name=='EZ_VSL':
+    elif net_name=='VSL':
         net = EZ_VSL(set_train=set_train)
-        loss_fn = loss_VSL()
+        # net = VSL_large(set_train=set_train)
+        loss_fn = loss_VSL_hard() if conf.training_param['hard_negatives'] else loss_VSL()
     else:
         net = MergeNet()
         loss_fn = nn.BCELoss() if conf.dnn_arch['heatmap'] else nn.CrossEntropyLoss()
@@ -35,7 +37,7 @@ def load_network(net_name=conf.dnn_arch['net_name'], ep=16, set_train=True):
 
     net, _ = set_network(set_train=set_train, net_name=net_name, print_net=False)
 
-    fol_name = conf.set_filename(name=net_name, print_path=False)
+    fol_name = conf.set_filename(name=net_name, print_path=False, hard_negatives=False)
 
     pt_name = 'net_ep_%s.pt'%ep
     net_path = os.path.join(fol_name, pt_name)
@@ -60,12 +62,14 @@ class backbone(nn.Module):
     def __init__(self,
             mode = 'image',
             freeze = False,
-            AVE_backbone=False
+            AVE_backbone=False,
+            small_features = True,
 
     ):
         super().__init__()
         self.freeze = freeze
         self.AVE_backbone = AVE_backbone
+        self.small_features = small_features
 
         if mode == 'image':
 
@@ -75,10 +79,14 @@ class backbone(nn.Module):
                         if isinstance(layer, nn.Conv2d):
                             layer.requires_grad_ = not freeze
 
-             # if AVE backbone, use the pretrained weights from the ave backbone
+            # if AVE backbone, use the pretrained weights from the ave backbone
             else:
                 print('using pretrained AVE backbone weights for image')
                 self.net = load_network(net_name='AVE', ep=60, set_train=True).AV_embedder.img_backbone
+
+            if not self.small_features:
+                self.net[6][0].conv1.stride = (1,1)
+                self.net[6][0].downsample[0].stride = (1,1)
 
 
         else:
@@ -171,7 +179,8 @@ class embedder_AV(nn.Module):
             max_a = False,
             max_v = False,
             img_only = False,
-            AVE_backbone = False
+            AVE_backbone = False,
+            small_features = True,
     ):
         super().__init__()
 
@@ -179,8 +188,9 @@ class embedder_AV(nn.Module):
         self.out_tensor = out_tensor
         self.img_only = img_only
         self.AVE_backbone = AVE_backbone
+        self.small_features = small_features
 
-        self.img_backbone = backbone(mode='image', AVE_backbone=self.AVE_backbone)
+        self.img_backbone = backbone(mode='image', AVE_backbone=self.AVE_backbone, small_features=self.small_features)
         self.img_embedder = embedder_img(sz=sz_FC, out_tensor=self.out_tensor, get_max=max_v)
 
         if not img_only:
@@ -299,7 +309,7 @@ class AVOL(nn.Module):
 
         self.conv_final = nn.Conv2d(1, 1, kernel_size=1)
 
-    def forward(self, img, aud, cam=None, device=conf.training_param['device']):
+    def forward(self, img, aud, cam=None, device=conf.training_param['device'], hard_negatives=False):
 
         bs = img.shape[0]
 
@@ -327,26 +337,35 @@ class AVOL(nn.Module):
 class EZ_VSL(nn.Module):
 
     def __init__(self,
-            sz_FC = 32,
+            sz_FC = 128,
             sz_cam = 11,
             set_train = True,
             ave_backbone = conf.dnn_arch['ave_backbone'],
+            small_features = conf.dnn_arch['small_features']
     ):
         super().__init__()
         self.sz_FC, self.sz_cam, self.set_train = sz_FC, sz_cam, set_train
+        self.small_features = small_features
 
-        self.AV_embedder = embedder_AV(sz_FC=sz_FC, sz_cam=sz_cam, AVE_backbone=ave_backbone)
+        self.AV_embedder = embedder_AV(sz_FC=sz_FC, sz_cam=sz_cam, AVE_backbone=ave_backbone, small_features=self.small_features)
 
         cos_dim = 0 if self.set_train else 1
         self.cos = nn.CosineSimilarity(dim=cos_dim)
 
-    def forward(self, img, aud, cam=None, device=conf.training_param['device']):
+    def forward(self, img, aud, cam=None, 
+                device=conf.training_param['device'], 
+                hard_negatives=conf.training_param['hard_negatives']):
 
         bs = img.shape[0]
 
         img_rep, aud_rep = self.AV_embedder(img, aud, cam)
 
+        if hard_negatives:
+            img_rep = img_rep.repeat((2,1,1,1))
+            bs = bs*2
+
         if self.set_train:
+
             x_score = torch.zeros((bs, bs)).to(device=device)
             for i, im in enumerate(img_rep):
                 for j, au in enumerate(aud_rep):
@@ -360,6 +379,4 @@ class EZ_VSL(nn.Module):
             x_score = torch.amax(x_map, (1,2))
 
             return x_score, x_map
-
-
 

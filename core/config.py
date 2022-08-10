@@ -16,17 +16,26 @@ from torchvision import transforms
 # ------ setting the file name ---------------------------------------------------------------------
 def set_filename(name='AVE', 
                 toy_params=(False, 128),
-                print_path=False
+                print_path=False,
+                hard_negatives = None,
                 ):
+
+    if hard_negatives is None:
+        hard_negatives = training_param['hard_negatives']
 
     mic_name = 'MC' if logmelspectro['multi_mic'] else 'SC'
 
     if toy_params[0]: 
-        net_size = str(toy_params[1])
+        net_size = 'TOY'+str(toy_params[1])
     else:
         net_size = ''
 
-    fol_name = mic_name + net_size + '_' + name
+    if data_param['filter_silent']:
+        sil = 'silent_filtered'
+    else:
+        sil = 'silent_unfiltered'
+
+    fol_name = os.path.join(input['project_path'], 'results',  'checkpoints', 'sec_%d'%input['frame_len_sec'], sil, name + '_' + mic_name)
 
     """
     # if name=='AVOL':
@@ -51,22 +60,32 @@ def set_filename(name='AVE',
     #         fol_name = fol_name + '_BCE'
     """
 
-    if training_param['vid_contrast']:
-        fol_name = fol_name + '_vid'
+    net_name = net_size+'FC%d'%dnn_arch['FC_size'] 
 
     if training_param['frame_seq']:
-        fol_name = fol_name + '_MF'
+        net_name += '_MF'
+
+    if not dnn_arch['small_features']:
+        net_name += '_large'
 
     if not name=='AVE' and dnn_arch['ave_backbone']:
-        fol_name = fol_name + '_pretrained'
+        net_name += '_pre'
 
-    if data_param['filter_silent']:
-        fol_name = fol_name + '_filtered'
+    if hard_negatives:
+        net_name += '_hrd'
 
-    file_path = os.path.join(os.getcwd(), 'results', 'checkpoints', fol_name)  # results/checkpoints/MultiChannel_sz
+
+
+    file_path = os.path.join(fol_name, net_name)
+
+    # if input['frame_len_sec']==1:
+    #     file_path = os.path.join(os.getcwd(), 'results', 'sec_1','checkpoints', fol_name)  # results/checkpoints/MultiChannel_sz
+    # else:
+    #     file_path = os.path.join(os.getcwd(), 'results', 'sec_2','checkpoints', fol_name)  # results/checkpoints/MultiChannel_sz
+
 
     if not os.path.exists(file_path):
-        os.mkdir(file_path)
+        os.makedirs(file_path)
 
     imgs = ['train', 'val', 'test']
     for img in imgs:
@@ -76,6 +95,7 @@ def set_filename(name='AVE',
 
     if print_path:
         print('network path', file_path)
+        print('batch_size', training_param['batch_size'])
 
     return file_path
 
@@ -107,7 +127,10 @@ dnn_arch = {
     'net_name':'AVOL',
     # AVE, EZ_VSL
 
-    'ave_backbone':False
+    'ave_backbone':False, # use pretrained backbone for AVENet
+
+    'small_features':True, # small feature map (14x14) otherwise (28x28)
+    'FC_size':128
 
 }
 
@@ -121,19 +144,21 @@ training_param = {
     #'criterion': nn.CrossEntropyLoss,
     'learning_rate': 0.001, # this is used if user does not provide another lr with the parser
     'epochs': 60, # this is used if user does not provide the epoch number with the parser
-    'batch_size': 32,
+    'batch_size': 16,
     'frame_len_samples': input['frame_len_sec'] * input['sr'], # number of audio samples in 2 sec
 
     'frame_seq': False,
     'frame_vid_samples': 5,
 
-    'toy_params': (False, 128),
+    'toy_params': (False, 1024),
 
     'inference': True,
     'vid_contrast': False,
 
     'device': device,
     'train_binary': False,
+    'hard_negatives':False, # if we want to make it very hard to learn the spatial coherence
+
     #'input_norm': 'freq_wise', # choose between: 'freq_wise', 'global', or None
     #'step_size':,
     #'gamma': ,
@@ -155,6 +180,7 @@ data_param = {
         ]) ,
 
     'filter_silent':True,
+
 }
 
 logmelspectro = {
@@ -166,7 +192,9 @@ logmelspectro = {
     'numcep': 64, # number of cepstrum bins to return
     'n_fft': 512, #fft lenght
     'fmin': 40, #Hz
-    'fmax': 24000 #Hz
+    'fmax': 24000, #Hz
+    'ref_mic_id': 0 # reference microphone
+
 }
 
 

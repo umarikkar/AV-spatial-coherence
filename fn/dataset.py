@@ -3,8 +3,11 @@ import glob
 import os
 import pickle
 import random
+import shutil
 from math import floor
 from pathlib import Path
+
+import cv2
 
 import core.config as conf
 import core.utils as utils
@@ -16,11 +19,11 @@ from PIL import Image
 from torch.utils.data import Dataset, Subset
 from torchvision.transforms import transforms
 
-# MAKE THE DATASET FOLDERS
+# MAKE THE DATASET FOLDERS ---------------------------------------
 
 def MakeFolders(sequence_path, video=False):
 
-    import shutil
+
 
     if not video:
         dir_1 = np.array(['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','16'])
@@ -134,7 +137,11 @@ def SaveVideoFrames(data_path):
 
 # READ DATA AND GENERATE FEATURES -----------------------------------------------------------------------------------------------------------------------------------
 
-def read_audio_file(sequence, train_or_test, rig, initial_time, base_path = conf.input['project_path']):
+def read_audio_file(sequence, train_or_test, rig, initial_time, base_path = conf.input['project_path'], fps=30):
+
+    """
+    returns an 16-dimensional audio vector dim=i corresponds to microphone i+1. 
+    """
 
     sequence_path = os.path.join(base_path, 'data', 'RJDataset', 'audio', sequence, rig, '')
 
@@ -177,12 +184,11 @@ def generate_audio_tensor(audio, sr, multi_mic = conf.logmelspectro['multi_mic']
     n_fft = conf.logmelspectro['n_fft']
     fmin = conf.logmelspectro['fmin']
     fmax = conf.logmelspectro['fmax']
+    ref_mic_id = conf.logmelspectro['ref_mic_id']
 
     tensor = [] # log mel tensor
     channel_num = audio.shape[1]
     
-    ref_mic_id = 0
-
     if multi_mic:
         for n in range(channel_num):
             if not n==ref_mic_id:
@@ -262,13 +268,37 @@ class dataset_from_scratch(Dataset):
     
     def __getitem__(self, audio_seg):
 
+        """
+        CSV row looks like this:
+        0:seq_name | 1:time | 2:x | 3:pseudo_label | 4:SA_total | 5:SA_male | 6:SA_female | 7:x_male | 8:y_male | 9:x_female | 10:y_female
+        """
+
         full_name = self.csv_list[self.frame_idx_list[audio_seg]][0]
         sequence = full_name[:-6]
         cam = np.int(full_name[-2:])
         initial_time = np.float(self.csv_list[self.frame_idx_list[audio_seg]][1])
 
-        pseudo_label = self.csv_list[self.frame_idx_list[audio_seg]][-2]
-        speech_activity = self.csv_list[self.frame_idx_list[audio_seg]][-1]
+        pseudo_label = self.csv_list[self.frame_idx_list[audio_seg]][3]
+        speech_activity = self.csv_list[self.frame_idx_list[audio_seg]][4]
+
+        if self.train_or_test == 'test':
+            ls = self.csv_list[self.frame_idx_list[audio_seg]]
+            meta_male = str({
+                'ID':'Romeo',
+                'activity':ls[5],
+                'x':ls[7],
+                'y':ls[8]
+            })
+
+            meta_female = str({
+                'ID':'Juliet',
+                'activity':ls[6],
+                'x':ls[9],
+                'y':ls[10]
+            })
+            
+        else:
+            meta_male, meta_female = '', ''
 
         cam_vid = str(cam)
 
@@ -294,7 +324,7 @@ class dataset_from_scratch(Dataset):
         tensor = tensor.astype('float32')
         input_features = torch.from_numpy(tensor)
 
-        return input_features, cam, img_tensor, full_name, initial_time, pseudo_label, speech_activity
+        return input_features, cam, img_tensor, full_name, initial_time, pseudo_label, speech_activity, meta_male, meta_female
 
 
 class dataset_from_hdf5(Dataset):
@@ -331,6 +361,8 @@ class dataset_from_hdf5(Dataset):
         init_time = self.h5_file['initial_time'][audio_seg]
         pseudo_labels = self.h5_file['pseudo_labels'][audio_seg]
         speech_activity = self.h5_file['speech_activity'][audio_seg]
+        meta_male = self.h5_file['meta_male'][audio_seg]
+        meta_female = self.h5_file['meta_female'][audio_seg]
 
         # getting sequences only or full samples
         if not self.seq:
@@ -353,7 +385,7 @@ class dataset_from_hdf5(Dataset):
         # input_features[-1,:,:] = self.t_audio(input_features[-1,:,:].unsqueeze(0)).squeeze(0)
         # imgs = self.t_image(imgs)
 
-        return input_features, cam, imgs, full_name, init_time, pseudo_labels, speech_activity
+        return input_features, cam, imgs, full_name, init_time, pseudo_labels, speech_activity, meta_male, meta_female
 
 
 # EXTRACT TRAIN/VAL/TEST DATA --------------------------------------------------------------------------------------------------------------------------------------
@@ -366,10 +398,13 @@ def get_train_val(multi_mic=conf.logmelspectro['multi_mic'], train_or_test='trai
     """
     base_path = conf.input['project_path']
 
+    frame_len = conf.input['frame_len_sec']
 
     mic_info = 'MC_seq' if multi_mic else 'SC_seq'
 
-    h5py_dir_str = os.path.join(base_path, 'data', 'h5py_%s' %mic_info,'')
+    h5py_dir_str = os.path.join(base_path, 'data', 'h5py_%s_sec%d' %(mic_info, frame_len),'')
+
+    # h5py_dir_str = os.path.join(base_path, 'data', 'h5py_%s' %mic_info,'')
     h5py_name = '%s_%s.h5' % (train_or_test, mic_info)
 
     h5py_path_str = os.path.join(h5py_dir_str, h5py_name)
@@ -457,9 +492,14 @@ def get_train_val(multi_mic=conf.logmelspectro['multi_mic'], train_or_test='trai
 
     return data_train, data_val, d_dataset
 
-# REMOVE SILENT SAMPLES ---------------------------------------------------------------------------------------------------------------------------------------------
 
-def remove_silent(data):
+# WORKING WITH SAMPLES ---------------------------------------------------------------------------------------------------------------------------------------------
+
+def filter_silent(data):
+
+    """
+    filters out the silent samples and returns the reduced data batch.
+    """
 
     speaking = data[6]
 
@@ -483,20 +523,96 @@ def remove_silent(data):
     return data_new
 
 
-# CREATE SAMPLES AND LABELS
+def create_neg_mask(seq_all,
+            remove_cam = True,
+            hard_negatives = conf.training_param['hard_negatives'],
+            device=conf.training_param['device']):
+
+    """
+    removes from the batch, contrastive pairs which contain same camera indexes.
+    creates the negative mask, with or without the hard negatives.
+    """
+
+    bs = len(seq_all)
+
+    neg_mask = torch.ones((bs, bs))
+    zer = torch.zeros((bs, bs))
+    ide = torch.eye(bs)
+
+    if remove_cam:
+        for idx1, seq1 in enumerate(seq_all):
+            for idx2, seq2 in enumerate(seq_all):
+                if idx1 != idx2 and seq1 == seq2:
+                    neg_mask[idx1, idx2] = 0
+
+    if hard_negatives:
+        neg_mask = torch.cat((torch.cat((neg_mask, zer), dim=1), torch.cat((zer, ide), dim=1)), dim=0)
+
+    neg_mask = neg_mask.to(device=device)
+    return neg_mask
+
+
+def augment_mic(audio,
+                random_shift=True,
+                min_shift=3, 
+                return_all=True):
+
+    """
+    shift the microphone indexes by a random amount, making it a 'hard' negative. 
+
+    The initial microphones are physcially placed as:
+                    '12','13','14','15','16'
+    '01','02','03','04','05','06','07','08','09','10','11'.
+
+    if ref_mic is 'k' we disregard the k'th channel index and shift the others. (For now, k=15 (index))
+    so idx of bottom channels: 0-9, and top channels: 10-14
+
+    As the default case, we shift the bottom mic indexes by 2 times the top mic indexes, but in the same direction.
+    Random horizontal flip of mics is also applied.
+
+    """
+    mic_top = torch.arange(10, 15)
+    mic_bot = torch.arange(0, 10)
+
+    aud_top = audio[:,mic_top]
+    aud_bot = audio[:,mic_bot]
+    aud_ref = audio[:,-1].unsqueeze(1)
+
+    if random_shift:
+        # flips randomly and shifts
+        top_shift = int(min_shift + torch.randint(len(mic_top)-min_shift, (1,)))
+        bot_shift = top_shift*2
+        aud_top, aud_bot = torch.roll(aud_top, top_shift, dims=1), torch.roll(aud_bot, bot_shift, dims=1)
+
+        if bool(random.getrandbits(1)):
+            aud_top, aud_bot = torch.flip(aud_top, dims=(1,)), torch.flip(aud_bot, dims=(1,))
+    
+    else:
+        # flip anyway without any shift
+        aud_top, aud_bot = torch.flip(aud_top, dims=(1,)), torch.flip(aud_bot, dims=(1,))
+
+    audio_aug = torch.cat((aud_bot, aud_top, aud_ref), dim=1)
+
+    if return_all:
+        return torch.cat((audio, audio_aug), dim=0)
+    else:
+        return audio_aug
+
 
 def create_samples(data, 
     device=conf.training_param['device'], 
     augment=False, 
     t_image=conf.data_param['t_image'], 
-    filter_silent=conf.data_param['filter_silent'],
-    return_mat = True):
+    remove_silent=conf.data_param['filter_silent'],
+    remove_cam = True,
+    return_mat = True,
+    hard_negatives=conf.training_param['hard_negatives']):
 
     no_batch_flag = False
 
     # let us remove all the non-speaking samples.
-    if filter_silent:
-        data = remove_silent(data)
+    if remove_silent:
+        data = filter_silent(data)
         no_batch_flag = True if data is None else False
 
     if no_batch_flag:
@@ -509,7 +625,7 @@ def create_samples(data,
         all_frames = data[2]
         seq_all = data[3]
 
-        batch_size = audio.shape[0]
+        bs = audio.shape[0]
     
         if conf.training_param['frame_seq']:
             imgs_all = all_frames
@@ -517,23 +633,21 @@ def create_samples(data,
             imgs_all = all_frames.squeeze(1)
 
         if augment:
-            for i in range(batch_size):
+            for i in range(bs):
                 imgs_all[i] = t_image(imgs_all[i])
 
         imgs_all = imgs_all.to(device=device)
         audio_all = audio.to(device=device)
         cam_all = cam.to(device=device)
 
+        if hard_negatives:
+            audio_all = augment_mic(audio_all)
+            cam_all = cam_all.repeat((2,1,1))
+
         if return_mat:
-        
-            neg_mask = torch.ones((batch_size, batch_size)).to(device=device)
-
-            for idx1, seq1 in enumerate(seq_all):
-
-                for idx2, seq2 in enumerate(seq_all):
-                    if idx1 != idx2 and seq1 == seq2:
-                        neg_mask[idx1, idx2] = 0
-
+            neg_mask = create_neg_mask(seq_all, 
+                            remove_cam=remove_cam, 
+                            hard_negatives=hard_negatives)
         else:
             neg_mask = None
 
@@ -542,7 +656,8 @@ def create_samples(data,
             'audio_all':audio_all,
             'cam_all':cam_all,
             'seq_all':seq_all,
-            'neg_mask':neg_mask
+            'neg_mask':neg_mask,
+            'raw_batch':bs
         }
             
         return samples

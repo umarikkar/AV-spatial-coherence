@@ -6,7 +6,7 @@ from pathlib import Path
 import core.config as conf
 from fn.dataset import dataset_from_hdf5, dataset_from_scratch
 from torch.utils.data import DataLoader
-import utils.utils as utils
+import core.utils as utils
 
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -15,13 +15,18 @@ import matplotlib.pyplot as plt
 base_path = conf.input['project_path']
 
 train_or_test = 'test'
-csv_file = os.path.join(base_path, 'data', 'csv', train_or_test + '.csv')
-# csv_file = base_path + 'data/csv/' + train_or_test + '.csv'
+
+if train_or_test == 'train':
+    csv_file = os.path.join(base_path, 'data', 'csv', train_or_test + '.csv')
+elif train_or_test=='test':
+    csv_file = os.path.join(base_path, 'data', 'csv', train_or_test + '_new.csv')
 
 
 def main():
 
-    h5py_dir_str = os.path.join(base_path, 'data', 'h5py_%s' %(args.info),'')
+    frame_len = conf.input['frame_len_sec']
+
+    h5py_dir_str = os.path.join(base_path, 'data', 'h5py_%s_sec%d' %(args.info, frame_len),'')
     h5py_dir = Path(h5py_dir_str)
     h5py_dir.mkdir(exist_ok=True, parents=True)
 
@@ -47,9 +52,10 @@ def main():
         total_size = len(d_dataset)
 
         data_loader = DataLoader(d_dataset, batch_size=1, shuffle=False, num_workers=4, pin_memory=True)
+        # data_loader = DataLoader(d_dataset, batch_size=1, shuffle=False)
 
         count = 0
-        for data in tqdm(data_loader, bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'):
+        for data in  tqdm(data_loader, bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}', leave=None):
 
             # print('count: {}/{}'.format('%s'%count, '%s'%total_size))
 
@@ -60,6 +66,8 @@ def main():
             initial_time = data[4]
             pseudo_labels = data[5]
             speech_activity = data[6]
+            meta_male = data[7]
+            meta_female = data[8]
 
             #print(count)
             if count == 0:
@@ -70,10 +78,12 @@ def main():
                               
                 f.create_dataset('initial_time', data=initial_time, maxshape=(None,), chunks=True)
 
-
                 f.create_dataset('sequence', data=sequence, maxshape=(None,), chunks=True)  
                 f.create_dataset('pseudo_labels', data=pseudo_labels, maxshape=(None,), chunks=True)
                 f.create_dataset('speech_activity', data=speech_activity, maxshape=(None,), chunks=True)
+
+                f.create_dataset('meta_male', data=meta_male, maxshape=(None,), chunks=True)
+                f.create_dataset('meta_female', data=meta_female, maxshape=(None,), chunks=True)
             else:
                 # Append new data to it
                 f['features'].resize((f['features'].shape[0] + audio.shape[0]), axis=0)
@@ -96,6 +106,12 @@ def main():
 
                 f['speech_activity'].resize((f['speech_activity'].shape[0] + len(speech_activity)), axis=0)
                 f['speech_activity'][-len(speech_activity):] = speech_activity
+
+                f['meta_male'].resize((f['meta_male'].shape[0] + len(meta_male)), axis=0)
+                f['meta_male'][-len(meta_male):] = meta_male
+
+                f['meta_female'].resize((f['meta_female'].shape[0] + len(meta_female)), axis=0)
+                f['meta_female'][-len(meta_female):] = meta_female
 
                 # f['all_frames'].resize((f['all_frames'].shape[0] + audio.shape[0]), axis=0)
                 # f['all_frames'][-audio.shape[0]:] = audio

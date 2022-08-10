@@ -1,0 +1,14 @@
+for sequence: all, size: 1350, acc: 74.75%, acc_pos: 98.37%, acc_neg: 50.93%
+
+inter-video accuracy matrix:
+
+acc_total: 
+[[74.75]] 
+
+acc_pos: 
+[[98.37]] 
+
+acc_neg: 
+[[50.93]]
+
+.

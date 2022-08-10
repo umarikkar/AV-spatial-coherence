@@ -1,5 +1,0 @@
-2022-08-03 14:39:55.424205 Epoch 1, Train loss nan, Val loss nan
-2022-08-03 16:25:24.877657 Epoch 1, Train loss 0.1501, Val loss 0.1398
-2022-08-03 16:48:33.967338 Epoch 2, Train loss 0.0965, Val loss 0.0839
-2022-08-03 16:59:48.605412 Epoch 3, Train loss 0.0755, Val loss 0.0767
-2022-08-03 17:11:00.521753 Epoch 4, Train loss 0.0741, Val loss 0.0814

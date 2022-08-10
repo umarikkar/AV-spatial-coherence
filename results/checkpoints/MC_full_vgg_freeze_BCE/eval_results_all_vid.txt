@@ -1,1 +1,0 @@
-for sequence: all, size: 1350, acc: 81.85%

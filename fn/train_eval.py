@@ -26,7 +26,8 @@ def Trainer(net,
         
         for data in tqdm(train_loader, bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}', leave=None):
                 
-            samples = create_samples(data, augment=True, device=device)
+            samples = create_samples(data, augment=True, device=device, 
+                            hard_negatives=conf.training_param['hard_negatives'])
 
             if samples is not None:
 

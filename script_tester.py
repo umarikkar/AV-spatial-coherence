@@ -28,7 +28,7 @@ def main():
     fol_name = conf.filenames['net_folder_path']
 
     # epoch_settings = np.linspace(4, 40, 10).astype('int')
-    epoch_settings = [52]
+    epoch_settings = [16]
 
     for ep in epoch_settings:
 
@@ -139,9 +139,9 @@ def main():
 
                     if data[6] == [b'SPEAKING']:
 
-                        samples = create_samples(data, augment=False, device=device, return_mat=False)
+                        samples = create_samples(data, augment=False, device=device, return_mat=False, hard_negatives=False)
                         imgs_all = samples['imgs_all']
-                        score, heatmap = net(samples['imgs_all'], samples['audio_all'], samples['cam_all'] )
+                        score, heatmap = net(samples['imgs_all'], samples['audio_all'], samples['cam_all'], hard_negatives=False )
 
                         heatmap = heatmap.cpu().squeeze(0).detach().numpy()
 
