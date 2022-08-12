@@ -6,6 +6,7 @@ import random
 import shutil
 from math import floor
 from pathlib import Path
+import ast
 
 import cv2
 
@@ -336,6 +337,7 @@ class dataset_from_hdf5(Dataset):
             seq=conf.training_param['frame_seq'], 
             t_image = transforms.Compose([]),
             t_audio = transforms.Compose([]),
+            train_or_test = 'train',
         ):
 
         self.h5_file = h5py.File(h5py_path, 'r')
@@ -345,6 +347,7 @@ class dataset_from_hdf5(Dataset):
         self.seq = seq 
         self.t_image = t_image
         self.t_audio = t_audio
+        self.train_or_test = train_or_test
 
     def __len__(self):
         return int((self.h5_file['features'].shape[0]) / 1)
@@ -361,8 +364,11 @@ class dataset_from_hdf5(Dataset):
         init_time = self.h5_file['initial_time'][audio_seg]
         pseudo_labels = self.h5_file['pseudo_labels'][audio_seg]
         speech_activity = self.h5_file['speech_activity'][audio_seg]
-        meta_male = self.h5_file['meta_male'][audio_seg]
-        meta_female = self.h5_file['meta_female'][audio_seg]
+        if self.train_or_test=='test':
+            meta_male = self.h5_file['meta_male'][audio_seg]
+            meta_female = self.h5_file['meta_female'][audio_seg]
+        else:
+            meta_male, meta_female = 'not_computed', 'not_computed'
 
         # getting sequences only or full samples
         if not self.seq:
@@ -413,20 +419,21 @@ def get_train_val(multi_mic=conf.logmelspectro['multi_mic'], train_or_test='trai
     if train_or_test=='train':
         d_dataset = dataset_from_hdf5(h5py_path, 
                                     normalize=True, 
+                                    train_or_test='train'
                                     # t_audio=conf.data_param['t_audio'], 
                                     # t_image=conf.data_param['t_image'],
                                     )
     else:
         d_dataset = dataset_from_hdf5(h5py_path, 
                             normalize=True, 
+                            train_or_test='test'
                             )
         if sequences != 'all':
             idx_list = []
             for (idx, data) in enumerate(d_dataset):
-                # print(data[3])
                 word = data[3].decode("utf-8")
                 word = word[:word.find('-cam')]
-                if word in sequences:
+                if word == sequences:
                     idx_list.append(idx)
                 
             d_dataset = Subset(d_dataset, idx_list)
@@ -606,7 +613,8 @@ def create_samples(data,
     remove_silent=conf.data_param['filter_silent'],
     remove_cam = True,
     return_mat = True,
-    hard_negatives=conf.training_param['hard_negatives']):
+    hard_negatives=conf.training_param['hard_negatives'],
+    train_or_test = 'train'):
 
     no_batch_flag = False
 
@@ -651,13 +659,36 @@ def create_samples(data,
         else:
             neg_mask = None
 
+        # let us now convert the string arrays for male and female, as dict and append to output dictionary
+        if train_or_test == 'test':
+
+            meta_all = [data[-2], data[-1]]
+            meta_all = [[ast.literal_eval(i.decode("utf-8")) for i in d] for d in meta_all]
+            original_res = np.array([2048, 2448])
+            final_res = np.array([all_frames[0].shape[-2], all_frames[0].shape[-1]])
+
+            r = final_res / original_res
+            
+            for meta_person in meta_all:
+                for d in meta_person:
+                    d['x'] = int(float(d['x'])*r[0])
+                    d['y'] = int(float(d['y'])*r[1])
+
+            meta_male, meta_female = meta_all[0], meta_all[1]
+
+        else:
+            meta_male, meta_female = data[-2], data[-1]
+
+
         samples = {
             'imgs_all':imgs_all,
             'audio_all':audio_all,
             'cam_all':cam_all,
             'seq_all':seq_all,
             'neg_mask':neg_mask,
-            'raw_batch':bs
+            'raw_batch':bs,
+            'meta_male':meta_male,
+            'meta_female':meta_female
         }
             
         return samples

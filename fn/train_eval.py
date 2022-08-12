@@ -1,5 +1,6 @@
 import datetime
 import os
+import math
 
 import torch
 from tqdm import tqdm
@@ -15,6 +16,14 @@ def Trainer(net,
             train_loader, 
             val_loader):
 
+    def save_model(epoch, net, optimiser, net_path):
+
+        torch.save({ 
+            'epoch': epoch,
+            'model': net.state_dict(),
+            'optimizer': optimiser.state_dict()}, net_path)
+        return
+
     device = conf.training_param['device']
 
     for epoch in range(epochs[0], epochs[1] + 1):
@@ -23,6 +32,8 @@ def Trainer(net,
         loss_perf = 0.0
         loss_l2 = 0.0
         net.train()
+
+        min_val = math.inf
         
         for data in tqdm(train_loader, bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}', leave=None):
                 
@@ -85,11 +96,20 @@ def Trainer(net,
         file_path = conf.filenames['net_folder_path']
         net_path = os.path.join(file_path, net_name + '.pt') # results/checkpoints/MultiChannel_sz/net_ep_X.pt
 
+        l_val = round(loss_val / len_val, 4)
+
+        if l_val < min_val:
+            min_val = l_val
+            update = True
+        else:
+            update = False
+
+
         verbose_str = '{} Epoch {}, Train loss {}, Val loss {}, Perfect loss {}'.format(
             dt, 
             epoch,
             round(loss_train / len(train_loader), 4),
-            round(loss_val / len_val, 4),
+            l_val,
             round(loss_perf / len(train_loader), 4)
         )
 
@@ -98,13 +118,13 @@ def Trainer(net,
         )
 
         print(verbose_str)
-                
-        if epoch == 1 or epoch % 4 == 0:
-            
-            torch.save({ 
-                'epoch': epoch,
-                'model': net.state_dict(),
-                'optimizer': optimiser.state_dict()}, net_path)
+
+        if update:
+            save_model(epoch, net, optimiser, net_path)
+
+        elif epoch == 1 or epoch % 4 == 0:
+            save_model(epoch, net, optimiser, net_path)
+
 
     return
 

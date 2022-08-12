@@ -224,16 +224,21 @@ class AVE(nn.Module):
             sz_FC = 64,
             sz_cam = 11,
             set_train = not conf.training_param['inference'],
-            multi_frame = conf.training_param['frame_seq']
+            multi_frame = conf.training_param['frame_seq'],
+            heatmap = conf.dnn_arch['heatmap'],
     ):
         super().__init__()
         self.sz_FC, self.sz_cam = sz_FC, sz_cam
         self.set_train = set_train
         self.multi_frame = multi_frame
+        self.heatmap = heatmap
 
-        self.AV_embedder = embedder_AV(sz_FC=sz_FC, sz_cam=sz_cam, out_tensor=False, 
+        out_tensor = True if self.heatmap else False
+
+        self.AV_embedder = embedder_AV(sz_FC=sz_FC, sz_cam=sz_cam, out_tensor=out_tensor, 
                                 max_a=True, max_v=True, AVE_backbone=False)
 
+        # for multiple frames, out_tensor is false because I have not found a way to spatially encode information yet.
         if self.multi_frame:
             self.gru = nn.GRU(sz_FC, sz_FC, 1, batch_first=True, bidirectional=False)
             self.img_embedder = embedder_AV(sz_FC=sz_FC, sz_cam=sz_cam, out_tensor=False, max_a=True, max_v=True, img_only=True)

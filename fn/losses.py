@@ -118,11 +118,8 @@ class loss_AVOL(nn.Module):
     def forward(self, scores_raw, neg_mask, device=conf.training_param['device'], return_err=False):
 
         loss = self.get_score(scores_raw, neg_mask)
-        labels = torch.eye(len(scores_raw)).to(device=device)
 
-        loss_perfect = self.get_score(labels, neg_mask)
-
-        return loss, loss_perfect
+        return loss, 0.00 # perfect loss here is 0.00 (because it is nn.BCE)
 
 
 class loss_AVE(nn.Module):

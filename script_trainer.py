@@ -36,7 +36,7 @@ def main():
         fol_name = conf.filenames['net_folder_path']
 
         print(fol_name)
-        ep =  8
+        ep =  4
 
         net_name = 'net_ep_%s.pt'%ep
         net_path = os.path.join(fol_name, net_name)

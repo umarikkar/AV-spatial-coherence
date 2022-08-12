@@ -106,13 +106,12 @@ input = {
     'project_path': proj_path,
     'fps': 30,
     'sr': 48000, # 48 kHz
-    'frame_len_sec': 2, # seconds
+    'frame_len_sec': 1, # seconds
     'frame_step_train': 1, #seconds, has overlaps
     'frame_step_test': 2, #seconds, no overlaps
 }
 
 dnn_arch = {
-    'heatmap':False,
 
     'vid_custom':False,
     'vid_pretrained': True,
@@ -126,11 +125,13 @@ dnn_arch = {
 
     'net_name':'AVOL',
     # AVE, EZ_VSL
+    'heatmap':False, # only applies to the heatmap
+
 
     'ave_backbone':False, # use pretrained backbone for AVENet
 
     'small_features':True, # small feature map (14x14) otherwise (28x28)
-    'FC_size':128
+    'FC_size':32
 
 }
 
@@ -144,7 +145,7 @@ training_param = {
     #'criterion': nn.CrossEntropyLoss,
     'learning_rate': 0.001, # this is used if user does not provide another lr with the parser
     'epochs': 60, # this is used if user does not provide the epoch number with the parser
-    'batch_size': 16,
+    'batch_size': 8,
     'frame_len_samples': input['frame_len_sec'] * input['sr'], # number of audio samples in 2 sec
 
     'frame_seq': False,
