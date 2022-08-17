@@ -21,6 +21,9 @@ if train_or_test == 'train':
 elif train_or_test=='test':
     csv_file = os.path.join(base_path, 'data', 'csv', train_or_test + '_new.csv')
 
+remove_silent = conf.data_param['filter_silent']
+
+
 
 def main():
 
@@ -30,7 +33,10 @@ def main():
     h5py_dir = Path(h5py_dir_str)
     h5py_dir.mkdir(exist_ok=True, parents=True)
 
-    h5py_name = '%s_%s.h5' % (train_or_test, (args.info))
+    if not remove_silent:
+        h5py_name = '%s_%s.h5' % (train_or_test, (args.info))
+    else: 
+        h5py_name = '%s_%s_sil.h5' % (train_or_test, (args.info))
 
     print(h5py_name)
 
@@ -45,13 +51,13 @@ def main():
 
         f = h5py.File(h5py_path, 'a')
 
-        print(h5py_path)
+        print('file path:', h5py_path)
 
         d_dataset = dataset_from_scratch(csv_file, train_or_test)
 
         total_size = len(d_dataset)
 
-        data_loader = DataLoader(d_dataset, batch_size=1, shuffle=False, num_workers=4, pin_memory=True)
+        data_loader = DataLoader(d_dataset, batch_size=1, shuffle=False, num_workers=8, pin_memory=True)
         # data_loader = DataLoader(d_dataset, batch_size=1, shuffle=False)
 
         count = 0
@@ -68,65 +74,75 @@ def main():
             speech_activity = data[6]
             meta_male = data[7]
             meta_female = data[8]
+            rig = data[9]
 
-            #print(count)
-            if count == 0:
-                # Create the dataset at first
-                f.create_dataset('features', data=audio, chunks=True, maxshape=(None, None, None, 64))
-                f.create_dataset('cams', data=cam, chunks=True, maxshape=(None, 1, 11))
-                f.create_dataset('img_frames', data=all_frames, chunks=True, maxshape=(None, None, 3, 224, 224))
-                              
-                f.create_dataset('initial_time', data=initial_time, maxshape=(None,), chunks=True)
+            if speech_activity[0] == 'NOT_SPEAKING':
+                pass
 
-                f.create_dataset('sequence', data=sequence, maxshape=(None,), chunks=True)  
-                f.create_dataset('pseudo_labels', data=pseudo_labels, maxshape=(None,), chunks=True)
-                f.create_dataset('speech_activity', data=speech_activity, maxshape=(None,), chunks=True)
-
-                f.create_dataset('meta_male', data=meta_male, maxshape=(None,), chunks=True)
-                f.create_dataset('meta_female', data=meta_female, maxshape=(None,), chunks=True)
             else:
-                # Append new data to it
-                f['features'].resize((f['features'].shape[0] + audio.shape[0]), axis=0)
-                f['features'][-audio.shape[0]:] = audio
+                #print(count)
+                if count == 0:
+                    # Create the dataset at first
+                    f.create_dataset('features', data=audio, chunks=True, maxshape=(None, None, None, 64))
+                    f.create_dataset('cams', data=cam, chunks=True, maxshape=(None, 1, 11))
+                    f.create_dataset('img_frames', data=all_frames, chunks=True, maxshape=(None, None, 3, 224, 224))
+                                
+                    f.create_dataset('initial_time', data=initial_time, maxshape=(None,), chunks=True)
 
-                f['cams'].resize((f['cams'].shape[0] + cam.shape[0]), axis=0)
-                f['cams'][-cam.shape[0]:] = cam
+                    f.create_dataset('sequence', data=sequence, maxshape=(None,), chunks=True)  
+                    f.create_dataset('pseudo_labels', data=pseudo_labels, maxshape=(None,), chunks=True)
+                    f.create_dataset('speech_activity', data=speech_activity, maxshape=(None,), chunks=True)
 
-                f['img_frames'].resize((f['img_frames'].shape[0] + all_frames.shape[0]), axis=0)
-                f['img_frames'][-all_frames.shape[0]:] = all_frames
+                    f.create_dataset('meta_male', data=meta_male, maxshape=(None,), chunks=True)
+                    f.create_dataset('meta_female', data=meta_female, maxshape=(None,), chunks=True)
 
-                f['sequence'].resize((f['sequence'].shape[0] + len(sequence)), axis=0)
-                f['sequence'][-len(sequence):] = sequence
+                    f.create_dataset('rig', data=rig, maxshape=(None,), chunks=True)
+                else:
+                    # Append new data to it
+                    f['features'].resize((f['features'].shape[0] + audio.shape[0]), axis=0)
+                    f['features'][-audio.shape[0]:] = audio
 
-                f['initial_time'].resize((f['initial_time'].shape[0] + len(initial_time)), axis=0)
-                f['initial_time'][-len(initial_time):] = initial_time
+                    f['cams'].resize((f['cams'].shape[0] + cam.shape[0]), axis=0)
+                    f['cams'][-cam.shape[0]:] = cam
 
-                f['pseudo_labels'].resize((f['pseudo_labels'].shape[0] + len(pseudo_labels)), axis=0)
-                f['pseudo_labels'][-len(pseudo_labels):] = pseudo_labels
+                    f['img_frames'].resize((f['img_frames'].shape[0] + all_frames.shape[0]), axis=0)
+                    f['img_frames'][-all_frames.shape[0]:] = all_frames
 
-                f['speech_activity'].resize((f['speech_activity'].shape[0] + len(speech_activity)), axis=0)
-                f['speech_activity'][-len(speech_activity):] = speech_activity
+                    f['sequence'].resize((f['sequence'].shape[0] + len(sequence)), axis=0)
+                    f['sequence'][-len(sequence):] = sequence
 
-                f['meta_male'].resize((f['meta_male'].shape[0] + len(meta_male)), axis=0)
-                f['meta_male'][-len(meta_male):] = meta_male
+                    f['initial_time'].resize((f['initial_time'].shape[0] + len(initial_time)), axis=0)
+                    f['initial_time'][-len(initial_time):] = initial_time
 
-                f['meta_female'].resize((f['meta_female'].shape[0] + len(meta_female)), axis=0)
-                f['meta_female'][-len(meta_female):] = meta_female
+                    f['pseudo_labels'].resize((f['pseudo_labels'].shape[0] + len(pseudo_labels)), axis=0)
+                    f['pseudo_labels'][-len(pseudo_labels):] = pseudo_labels
 
-                # f['all_frames'].resize((f['all_frames'].shape[0] + audio.shape[0]), axis=0)
-                # f['all_frames'][-audio.shape[0]:] = audio
+                    f['speech_activity'].resize((f['speech_activity'].shape[0] + len(speech_activity)), axis=0)
+                    f['speech_activity'][-len(speech_activity):] = speech_activity
 
-            # print("'features' chunk has shape:{}".format(f['features'].shape))
-            print("'features' chunk has shape:{}".format(f['features'].shape), file=open('%s/make_h5py_log.txt' % h5py_dir, "w"))
-            #print("'cams' chunk has shape:{}".format(f['cams'].shape))
-            #print("'target_coords' chunk has shape:{}".format(f['target_coords'].shape))
-            #print("'pseudo_labels' chunk has shape:{}".format(f['pseudo_labels'].shape))
-            #print("'speech_activity' chunk has shape:{}".format(f['speech_activity'].shape))
-            #print('--------------------------------------------------------------------')
+                    f['meta_male'].resize((f['meta_male'].shape[0] + len(meta_male)), axis=0)
+                    f['meta_male'][-len(meta_male):] = meta_male
 
-            count = count + 1
-            # if count == 10:
-            #     break
+                    f['meta_female'].resize((f['meta_female'].shape[0] + len(meta_female)), axis=0)
+                    f['meta_female'][-len(meta_female):] = meta_female
+
+                    f['rig'].resize((f['rig'].shape[0] + len(rig)), axis=0)
+                    f['rig'][-len(rig):] = rig
+
+                    # f['all_frames'].resize((f['all_frames'].shape[0] + audio.shape[0]), axis=0)
+                    # f['all_frames'][-audio.shape[0]:] = audio
+
+                # print("'features' chunk has shape:{}".format(f['features'].shape))
+                print("'features' chunk has shape:{}".format(f['features'].shape), file=open('%s/make_h5py_log.txt' % h5py_dir, "w"))
+                #print("'cams' chunk has shape:{}".format(f['cams'].shape))
+                #print("'target_coords' chunk has shape:{}".format(f['target_coords'].shape))
+                #print("'pseudo_labels' chunk has shape:{}".format(f['pseudo_labels'].shape))
+                #print("'speech_activity' chunk has shape:{}".format(f['speech_activity'].shape))
+                #print('--------------------------------------------------------------------')
+
+                count = count + 1
+                # if count == 10:
+                #     break
 
         # print('Computing feature scaler...')
         print('Computing feature scaler...', file=open('%s/make_h5py_log.txt' % h5py_dir, "a"))

@@ -358,19 +358,29 @@ class dataset_from_hdf5(Dataset):
 
 # EXTRACT TRAIN/VAL/TEST DATA --------------------------------------------------------------------------------------------------------------------------------------
 
-def get_train_val(multi_mic=conf.logmelspectro['multi_mic'], train_or_test='train', toy_params=conf.training_param['toy_params'], sequences='all'):
+def get_train_val(multi_mic=conf.logmelspectro['multi_mic'], train_or_test='train', toy_params=conf.training_param['toy_params'], sequences='all', remove_silent=conf.data_param['filter_silent'],
+load_idx=False
+):
+
     """
-    Function to get train and validation sets. 
-    Precomputed indexes are available for the full dataset. 
-    Else, we need to compute the indexes randomly.
+    Function to get train and validation sets.
     """
     base_path = conf.input['project_path']
 
+    frame_len = conf.input['frame_len_sec']
 
     mic_info = 'MC_seq' if multi_mic else 'SC_seq'
 
-    h5py_dir_str = os.path.join(base_path, 'data', 'h5py_%s' %mic_info,'')
-    h5py_name = '%s_%s.h5' % (train_or_test, mic_info)
+    h5py_dir_str = os.path.join(base_path, 'data', 'h5py_%s_sec%d' %(mic_info, frame_len),'')
+
+    # h5py_dir_str = os.path.join(base_path, 'data', 'h5py_%s' %mic_info,'')
+
+    if not remove_silent:
+        h5py_name = '%s_%s.h5' % (train_or_test, mic_info)
+    else: 
+        h5py_name = '%s_%s_sil.h5' % (train_or_test, mic_info)
+
+    # h5py_name = '%s_%s.h5' % (train_or_test, mic_info)
 
     h5py_path_str = os.path.join(h5py_dir_str, h5py_name)
     h5py_path = Path(h5py_path_str)
@@ -378,85 +388,89 @@ def get_train_val(multi_mic=conf.logmelspectro['multi_mic'], train_or_test='trai
     if train_or_test=='train':
         d_dataset = dataset_from_hdf5(h5py_path, 
                                     normalize=True, 
+                                    train_or_test='train'
                                     # t_audio=conf.data_param['t_audio'], 
                                     # t_image=conf.data_param['t_image'],
                                     )
     else:
         d_dataset = dataset_from_hdf5(h5py_path, 
                             normalize=True, 
+                            train_or_test='test'
                             )
         if sequences != 'all':
             idx_list = []
             for (idx, data) in enumerate(d_dataset):
-                # print(data[3])
                 word = data[3].decode("utf-8")
                 word = word[:word.find('-cam')]
-                if word in sequences:
+                if word == sequences:
                     idx_list.append(idx)
                 
             d_dataset = Subset(d_dataset, idx_list)
 
     # DATA LOADER INITIALISATION -----------------------------------------------------------------------------
-    load_idxs= False
+    if load_idx:
+        load_idxs= False
 
-    if toy_params[0]:
-        sz_train = toy_params[1]
-        sz_val = int(0.2 * (toy_params[1] / 0.8))
+        if toy_params[0]:
+            sz_train = toy_params[1]
+            sz_val = int(0.2 * (toy_params[1] / 0.8))
 
-        rand_toy = list(range(sz_train + sz_val))
-        random.shuffle(rand_toy)
-        d_dataset = Subset(d_dataset, rand_toy)
-    
-    elif sequences == 'all':
-        file_train = os.path.join(os.getcwd(), 'results','indexes', 'idxs_train.pkl')
-        file_val = os.path.join(os.getcwd(), 'results','indexes', 'idxs_val.pkl')
-
-        files = [file_train, file_val]
-
-        load_idxs = True
+            rand_toy = list(range(sz_train + sz_val))
+            random.shuffle(rand_toy)
+            d_dataset = Subset(d_dataset, rand_toy)
         
-        for i,f in enumerate(files):
-            if not os.path.exists(f):
-                print('making new indexes')
-                load_idxs = False
-                break
-            else:
-                print('getting pre-computed indexes')
-                open_file = open(f, "rb")
-                if i==0:
-                    train_idxs = pickle.load(open_file)
+        elif sequences == 'all':
+            file_train = os.path.join(os.getcwd(), 'results','indexes', 'idxs_train.pkl')
+            file_val = os.path.join(os.getcwd(), 'results','indexes', 'idxs_val.pkl')
+
+            files = [file_train, file_val]
+
+            load_idxs = True
+            
+            for i,f in enumerate(files):
+                if not os.path.exists(f):
+                    print('making new indexes')
+                    load_idxs = False
+                    break
                 else:
-                    val_idxs = pickle.load(open_file)
-                open_file.close()
+                    print('getting pre-computed indexes')
+                    open_file = open(f, "rb")
+                    if i==0:
+                        train_idxs = pickle.load(open_file)
+                    else:
+                        val_idxs = pickle.load(open_file)
+                    open_file.close()
+        else:
+            pass
+
+
+        if not load_idxs:
+
+            rand_idxs = list(range(len(d_dataset)))
+            random.shuffle(rand_idxs)
+
+            train_size = floor(0.8*len(d_dataset))
+            train_idxs = rand_idxs[0:train_size]
+            val_idxs = rand_idxs[train_size:]
+
+            file_train = os.path.join(conf.filenames['net_folder_path'], 'idxs_train.pkl')
+            file_val = os.path.join(conf.filenames['net_folder_path'], 'idxs_val.pkl')
+
+            open_file = open(file_train, "wb")
+            pickle.dump(train_idxs, open_file)
+            open_file.close()
+
+            open_file = open(file_val, "wb")
+            pickle.dump(val_idxs, open_file)
+            open_file.close()
+
+        data_train = Subset(d_dataset, train_idxs)
+        data_val = Subset(d_dataset, val_idxs)
+
+        return data_train, data_val, d_dataset
+
     else:
-        pass
-
-
-    if not load_idxs:
-
-        rand_idxs = list(range(len(d_dataset)))
-        random.shuffle(rand_idxs)
-
-        train_size = floor(0.8*len(d_dataset))
-        train_idxs = rand_idxs[0:train_size]
-        val_idxs = rand_idxs[train_size:]
-
-        file_train = os.path.join(conf.filenames['net_folder_path'], 'idxs_train.pkl')
-        file_val = os.path.join(conf.filenames['net_folder_path'], 'idxs_val.pkl')
-
-        open_file = open(file_train, "wb")
-        pickle.dump(train_idxs, open_file)
-        open_file.close()
-
-        open_file = open(file_val, "wb")
-        pickle.dump(val_idxs, open_file)
-        open_file.close()
-
-    data_train = Subset(d_dataset, train_idxs)
-    data_val = Subset(d_dataset, val_idxs)
-
-    return data_train, data_val, d_dataset
-
+        return d_dataset
 
 # CREATE SAMPLES AND LABELS
 

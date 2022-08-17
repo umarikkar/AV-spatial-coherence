@@ -4,34 +4,36 @@ import torch
 import torch.nn as nn
 from einops import rearrange
 from torchvision.models import resnet18
-from fn.losses import loss_AVE, loss_AVOL, loss_VSL, loss_VSL_hard
-from archived_scripts.fn_networks import MergeNet
+from fn.losses import loss_AVE, loss_AVOL, loss_AVOL_flip, loss_VSL, loss_VSL_flip
 import os
 import core.config as conf
 
 # SET AND LOAD NETWORK  ------------------------------------------------------------------------------------------
 
+
 def set_network(set_train=True, net_name=conf.dnn_arch['net_name'], print_net=True):
 
     if net_name=='AVOL':
-        net = AVOL(set_train=set_train)
-        loss_fn = loss_AVOL()
+        net = MergeNet(merge_type='AVOL', set_train=set_train)
+        if conf.contrast_param['flip_img'] or conf.contrast_param['flip_mic']:
+            loss_fn = loss_AVOL_flip()
+        else:
+            loss_fn = loss_AVOL()
     elif net_name=='AVE':
         net = AVE(set_train=set_train)
-        loss_fn = loss_AVE()
+        loss_fn = loss_AVE() 
     elif net_name=='VSL':
-        net = EZ_VSL(set_train=set_train)
+        net =  MergeNet(merge_type='VSL', set_train=set_train)
         # net = VSL_large(set_train=set_train)
-        loss_fn = loss_VSL_hard() if conf.training_param['hard_negatives'] else loss_VSL()
-    else:
-        net = MergeNet()
-        loss_fn = nn.BCELoss() if conf.dnn_arch['heatmap'] else nn.CrossEntropyLoss()
+        if conf.contrast_param['flip_img'] or conf.contrast_param['flip_mic']:
+            loss_fn = loss_VSL_flip()
+        else:
+            loss_fn = loss_VSL()
 
     if print_net:
         print('net: ', type(net), '\nloss: ', loss_fn)
 
     return net, loss_fn
-
 
 def load_network(net_name=conf.dnn_arch['net_name'], ep=16, set_train=True):
 
@@ -160,10 +162,14 @@ class embedder_aud(nn.Module):
         self.FC1 = nn.Linear(512, sz).apply(init_weights)
         self.FC2 = nn.Linear(sz + sz_cam, sz)
 
-    def forward(self, x, cam=None):
+    def forward(self, x, cam=None, repeat_aud=conf.contrast_param['flip_img'] and not conf.contrast_param['flip_mic']):
 
         x = self.net(x)
         x = self.FC1(x.squeeze(-1).squeeze(-1))
+
+        if repeat_aud:
+            x = x.repeat(2, 1)
+
         x = torch.concat((x, cam.squeeze(1)), dim=-1).float()
         x = self.FC2(x).unsqueeze(-1).unsqueeze(-1)
 
@@ -198,7 +204,7 @@ class embedder_AV(nn.Module):
             self.aud_embedder = embedder_aud(sz=sz_FC, sz_cam=sz_cam, get_max=max_a)
        
 
-    def forward(self, img, aud=None, cam=None, device=conf.training_param['device']):
+    def forward(self, img, aud=None, cam=None, flip_img=conf.contrast_param['flip_img'], flip_mic=conf.contrast_param['flip_mic'], device=conf.training_param['device']):
 
         img_stem = self.img_backbone(img)
         img_rep = self.img_embedder(img_stem)
@@ -208,7 +214,7 @@ class embedder_AV(nn.Module):
             if cam is None:
                 cam = torch.zeros((img.shape[0], 1, self.sz_cam)).to(device=device)
             aud_stem = self.aud_backbone(aud)
-            aud_rep = self.aud_embedder(aud_stem, cam)
+            aud_rep = self.aud_embedder(aud_stem, cam, repeat_aud=flip_img and not flip_mic)
 
             return img_rep, aud_rep
         else:
@@ -298,89 +304,61 @@ class AVE(nn.Module):
             return x_out
 
 
-class AVOL(nn.Module):
+class MergeNet(nn.Module):
 
     def __init__(self,
-            sz_FC = 32,
-            sz_cam = 11,
-            set_train = True,
-            ave_backbone = conf.dnn_arch['ave_backbone'],
-    ):
-        super().__init__()
-        self.sz_FC, self.sz_cam = sz_FC, sz_cam
-        self.set_train = set_train
-
-        self.AV_embedder = embedder_AV(sz_FC=sz_FC, sz_cam=sz_cam, AVE_backbone=ave_backbone)
-
-        self.conv_final = nn.Conv2d(1, 1, kernel_size=1)
-
-    def forward(self, img, aud, cam=None, device=conf.training_param['device'], hard_negatives=False):
-
-        bs = img.shape[0]
-
-        img_rep, aud_rep = self.AV_embedder(img, aud, cam)
-
-        if self.set_train:
-            x_score = torch.zeros((bs, bs)).to(device=device)
-            for i, im in enumerate(img_rep):
-                for j, au in enumerate(aud_rep):
-                    x_map = (im * au).mean(dim=0, keepdim=True) 
-                    x_score[i,j] = torch.amax(torch.sigmoid(self.conv_final(x_map)).squeeze(0))
-
-            return x_score
-
-        else:
-            x_map = img_rep * aud_rep
-            x_map = x_map.mean(dim=1, keepdim=True) 
-
-            x_map = torch.sigmoid(self.conv_final(x_map)).squeeze(1)
-            x_score = torch.amax(x_map, (1,2))
-
-            return x_score, x_map
-
-
-class EZ_VSL(nn.Module):
-
-    def __init__(self,
-            sz_FC = 128,
+            merge_type = conf.dnn_arch['net_name'],
+            sz_FC = conf.dnn_arch['FC_size'],
             sz_cam = 11,
             set_train = True,
             ave_backbone = conf.dnn_arch['ave_backbone'],
             small_features = conf.dnn_arch['small_features']
     ):
         super().__init__()
-        self.sz_FC, self.sz_cam, self.set_train = sz_FC, sz_cam, set_train
+        self.merge_type = merge_type
+        self.sz_FC, self.sz_cam = sz_FC, sz_cam
+        self.set_train = set_train
         self.small_features = small_features
 
         self.AV_embedder = embedder_AV(sz_FC=sz_FC, sz_cam=sz_cam, AVE_backbone=ave_backbone, small_features=self.small_features)
+        
+        if merge_type=='AVOL':
+            self.conv_final = nn.Conv2d(1, 1, kernel_size=1)
+        elif merge_type=='VSL':
+            cos_dim = 0 if self.set_train else 1
+            self.cos = nn.CosineSimilarity(dim=cos_dim)
 
-        cos_dim = 0 if self.set_train else 1
-        self.cos = nn.CosineSimilarity(dim=cos_dim)
 
-    def forward(self, img, aud, cam=None, 
-                device=conf.training_param['device'], 
-                hard_negatives=conf.training_param['hard_negatives']):
+    def forward(self, img, aud, cam=None, flip_img=conf.contrast_param['flip_img'], flip_mic=conf.contrast_param['flip_img'], device=conf.training_param['device'], hard_negatives=False):
 
         bs = img.shape[0]
 
-        img_rep, aud_rep = self.AV_embedder(img, aud, cam)
-
-        if hard_negatives:
-            img_rep = img_rep.repeat((2,1,1,1))
-            bs = bs*2
+        img_rep, aud_rep = self.AV_embedder(img, aud, cam, flip_img=flip_img and not flip_mic)
 
         if self.set_train:
-
+    
             x_score = torch.zeros((bs, bs)).to(device=device)
+
             for i, im in enumerate(img_rep):
                 for j, au in enumerate(aud_rep):
-                    x_map = self.cos(im, au)
+
+                    if self.merge_type == 'AVOL':
+                        x_map = (im * au).mean(dim=0, keepdim=True)
+                        x_map = torch.sigmoid(self.conv_final(x_map)).squeeze(0)
+                    elif self.merge_type=='VSL':
+                        x_map = self.cos(im, au)
+
                     x_score[i,j] = torch.amax(x_map)
 
             return x_score
 
         else:
-            x_map = self.cos(img_rep, aud_rep)
+            if self.merge_type == 'AVOL':
+                x_map = (img_rep * aud_rep).mean(dim=1, keepdim=True)
+                x_map = torch.sigmoid(self.conv_final(x_map)).squeeze(1)
+            elif  self.merge_type=='VSL':
+                x_map = self.cos(img_rep, aud_rep)
+
             x_score = torch.amax(x_map, (1,2))
 
             return x_score, x_map

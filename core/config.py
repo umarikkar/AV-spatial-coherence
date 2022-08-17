@@ -21,7 +21,7 @@ def set_filename(name='AVE',
                 ):
 
     if hard_negatives is None:
-        hard_negatives = training_param['hard_negatives']
+        hard_negatives = contrast_param['hard_negatives']
 
     mic_name = 'MC' if logmelspectro['multi_mic'] else 'SC'
 
@@ -37,29 +37,6 @@ def set_filename(name='AVE',
 
     fol_name = os.path.join(input['project_path'], 'results',  'checkpoints', 'sec_%d'%input['frame_len_sec'], sil, name + '_' + mic_name)
 
-    """
-    # if name=='AVOL':
-    #     fol_name = mic_name + net_size + '_AVOL'
-    # elif name=='AVE':
-    #     fol_name = mic_name + net_size + '_AVE'
-    # elif name=='EZ_VSL':
-    #     fol_name = mic_name +net_size + '_EZ_VSL'
-    # else:
-    #     if not dnn_arch['vid_custom']:
-    #         if dnn_arch['vid_pretrained']:
-    #             if not dnn_arch['vid_freeze']:
-    #                 fol_name = mic_name + '_' + net_size + '_vgg_flex' # MultiChannel_sz_vgg_flex
-    #             else:
-    #                 fol_name = mic_name + '_' + net_size + '_vgg_freeze' # MultiChannel_sz_vgg_freeze
-    #         else:
-    #             fol_name = mic_name + '_' + net_size + '_vgg' # MultiChannel_sz_vgg_flex
-    #     else:
-    #         fol_name = mic_name + '_' + net_size # MultiChannel_sz
-
-    #     if dnn_arch['heatmap']:
-    #         fol_name = fol_name + '_BCE'
-    """
-
     net_name = net_size+'FC%d'%dnn_arch['FC_size'] 
 
     if training_param['frame_seq']:
@@ -73,7 +50,21 @@ def set_filename(name='AVE',
 
     if hard_negatives:
         net_name += '_hrd'
+    else:
+        net_name += '_mix'
 
+    if contrast_param['flip_mic'] and contrast_param['flip_img']:
+        net_name = net_name + '_flip'
+    elif contrast_param['flip_img']:
+        net_name = net_name + '_img_' + str(contrast_param['alpha'])
+    elif contrast_param['flip_mic']:
+        net_name += '_mic'
+
+    # if contrast_param['flip_img']:
+    #     net_name = net_name + '_img_' + str(contrast_param['alpha'])
+
+    # if contrast_param['flip_mic']:
+    #     net_name += '_mic'
 
 
     file_path = os.path.join(fol_name, net_name)
@@ -97,7 +88,7 @@ def set_filename(name='AVE',
         print('network path', file_path)
         print('batch_size', training_param['batch_size'])
 
-    return file_path
+    return file_path, name +'_'+ net_name
 
 
 proj_path = os.getcwd()
@@ -113,25 +104,26 @@ input = {
 
 dnn_arch = {
 
-    'vid_custom':False,
-    'vid_pretrained': True,
-    'vid_freeze':True,
+    # """
+    # 'vid_custom':False,
+    # 'vid_pretrained': True,
+    # 'vid_freeze':True,
 
-    'ave_backbone': True,
+    # 'aud_custom': True,      
+    # 'aud_pretrained': False,
+    # 'aud_freeze': False,
 
-    'aud_custom': True,      
-    'aud_pretrained': False,
-    'aud_freeze': False,
+    # """
 
     'net_name':'AVOL',
-    # AVE, EZ_VSL
+    # AVE, VSL, AVOL are the options
     'heatmap':False, # only applies to the heatmap
 
 
     'ave_backbone':False, # use pretrained backbone for AVENet
 
     'small_features':True, # small feature map (14x14) otherwise (28x28)
-    'FC_size':32
+    'FC_size':128
 
 }
 
@@ -143,36 +135,47 @@ training_param = {
 
     'optimizer': torch.optim.Adam,
     #'criterion': nn.CrossEntropyLoss,
-    'learning_rate': 0.001, # this is used if user does not provide another lr with the parser
+    'learning_rate': 0.0001, # this is used if user does not provide another lr with the parser
     'epochs': 60, # this is used if user does not provide the epoch number with the parser
-    'batch_size': 8,
+    'batch_size': 16,
     'frame_len_samples': input['frame_len_sec'] * input['sr'], # number of audio samples in 2 sec
 
     'frame_seq': False,
     'frame_vid_samples': 5,
 
-    'toy_params': (False, 1024),
+    'toy_params': (False, 512),
 
     'inference': True,
     'vid_contrast': False,
 
     'device': device,
     'train_binary': False,
-    'hard_negatives':False, # if we want to make it very hard to learn the spatial coherence
 
     #'input_norm': 'freq_wise', # choose between: 'freq_wise', 'global', or None
     #'step_size':,
     #'gamma': ,
 }
 
+contrast_param = {
+
+    'hard_negatives':False, # only consider the flip
+    'flip_mic':True,
+    'flip_img':True,
+    'alpha':0.25,
+
+}
+
 data_param = {
 
     't_image' : transforms.Compose([
-        # transforms.Resize((112,112)),
         transforms.ColorJitter((0.6, 1.4), (0.6, 1.4), (0.6, 1.4), (-0.2, 0.2)),
         transforms.RandomGrayscale(0.2),
         transforms.RandomInvert(p=0.5),
         transforms.RandomVerticalFlip(p=0.5),
+        ]) ,
+
+    't_flip' : transforms.Compose([
+        transforms.RandomHorizontalFlip(p=1.0),
         ]) ,
 
     't_audio' : transforms.Compose([
@@ -194,7 +197,7 @@ logmelspectro = {
     'n_fft': 512, #fft lenght
     'fmin': 40, #Hz
     'fmax': 24000, #Hz
-    'ref_mic_id': 0 # reference microphone
+    'ref_mic_id': 5 # reference microphone (ID is 6, but we need the 5th index.)
 
 }
 
@@ -202,7 +205,10 @@ logmelspectro = {
 filenames = {
     'net_folder_path': set_filename(name=dnn_arch['net_name'], 
                             toy_params=training_param['toy_params'],
-                            print_path=True),
+                            print_path=True)[0],
     'train_val': 'test',
+    'net_name': set_filename(name=dnn_arch['net_name'], 
+                            toy_params=training_param['toy_params'],
+                            print_path=True)[1]
 }
 

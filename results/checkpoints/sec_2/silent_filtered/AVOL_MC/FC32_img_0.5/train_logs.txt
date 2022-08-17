@@ -1,0 +1,3 @@
+2022-08-13 23:34:00.127822 Epoch 1, Train loss 0.3794, Val loss 0.3089, Perfect loss 0.0012
+2022-08-13 23:48:44.545025 Epoch 2, Train loss 0.264, Val loss 0.3126, Perfect loss 0.0012
+2022-08-14 00:03:11.648657 Epoch 3, Train loss 0.2222, Val loss 0.2404, Perfect loss 0.0012

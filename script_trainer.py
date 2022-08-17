@@ -20,7 +20,6 @@ def main():
 
     net, loss_fn = set_network()
 
-    
     optimiser = optim.Adam(net.parameters(), lr=1e-4)
     # optimiser = optim.SGD(net.parameters(), lr=1e-2)
 
@@ -29,14 +28,14 @@ def main():
 
     # loading network ------------------------------------------
 
-    load_net = False
+    load_net = True
 
     if load_net:
 
         fol_name = conf.filenames['net_folder_path']
 
         print(fol_name)
-        ep =  4
+        ep =  16
 
         net_name = 'net_ep_%s.pt'%ep
         net_path = os.path.join(fol_name, net_name)
@@ -51,10 +50,12 @@ def main():
 
     # ---------------------------------------------------------
 
-    data_train, data_val, _ = get_train_val(multi_mic=multi_mic, train_or_test='train')
+    data_all = get_train_val(multi_mic=multi_mic, train_or_test='train')
 
-    train_loader = DataLoader(data_train, batch_size=bs, shuffle=True, num_workers=0, pin_memory=True)
-    val_loader = DataLoader(data_val, batch_size=bs, shuffle=True, num_workers=0, pin_memory=True)
+    # _, _, data_train = get_train_val(multi_mic=multi_mic, train_or_test='test')
+
+    # train_loader = DataLoader(data_train, batch_size=bs, shuffle=True, num_workers=0, pin_memory=True)
+    # val_loader = DataLoader(data_val, batch_size=bs, shuffle=True, num_workers=0, pin_memory=True)
 
     device = conf.training_param['device']
 
@@ -62,7 +63,7 @@ def main():
 
     print('starting epochs: {}\ntotal epochs: {}\n'.format(ep, epochs))
 
-    Trainer(net,[ep+1, epochs], loss_fn, optimiser, train_loader, val_loader=val_loader)
+    Trainer(net,[ep+1, epochs], loss_fn, optimiser, dataset=data_all)
 
 
 if __name__=='__main__':
