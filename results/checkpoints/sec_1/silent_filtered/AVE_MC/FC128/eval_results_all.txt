@@ -1,0 +1,135 @@
+for sequence: all, size: 849, acc: 88.08%, acc_pos: 57.6%, acc_neg: 92.47%
+
+inter-video accuracy matrix:
+epochs: 70 
+
+acc_total: 
+[[88.08]] 
+
+acc_pos: 
+[[57.6]] 
+
+acc_neg: 
+[[92.47]]
+
+.
+for sequence: all, size: 849, acc: 79.2%, acc_pos: 77.5%, acc_neg: 79.45%
+
+inter-video accuracy matrix:
+epochs: 10 
+
+acc_total: 
+[[79.2]] 
+
+acc_pos: 
+[[77.5]] 
+
+acc_neg: 
+[[79.45]]
+
+.
+for sequence: all, size: 849, acc: 83.9%, acc_pos: 70.44%, acc_neg: 85.85%
+
+inter-video accuracy matrix:
+epochs: 20 
+
+acc_total: 
+[[83.9]] 
+
+acc_pos: 
+[[70.44]] 
+
+acc_neg: 
+[[85.85]]
+
+.
+for sequence: all, size: 849, acc: 86.62%, acc_pos: 63.84%, acc_neg: 89.91%
+
+inter-video accuracy matrix:
+epochs: 30 
+
+acc_total: 
+[[86.62]] 
+
+acc_pos: 
+[[63.84]] 
+
+acc_neg: 
+[[89.91]]
+
+.
+for sequence: all, size: 849, acc: 86.57%, acc_pos: 66.08%, acc_neg: 89.53%
+
+inter-video accuracy matrix:
+epochs: 40 
+
+acc_total: 
+[[86.57]] 
+
+acc_pos: 
+[[66.08]] 
+
+acc_neg: 
+[[89.53]]
+
+.
+for sequence: all, size: 849, acc: 87.23%, acc_pos: 57.13%, acc_neg: 91.58%
+
+inter-video accuracy matrix:
+epochs: 50 
+
+acc_total: 
+[[87.23]] 
+
+acc_pos: 
+[[57.13]] 
+
+acc_neg: 
+[[91.58]]
+
+.
+for sequence: all, size: 849, acc: 87.58%, acc_pos: 60.54%, acc_neg: 91.48%
+
+inter-video accuracy matrix:
+epochs: 60 
+
+acc_total: 
+[[87.58]] 
+
+acc_pos: 
+[[60.54]] 
+
+acc_neg: 
+[[91.48]]
+
+.
+for sequence: all, size: 849, acc: 88.25%, acc_pos: 57.6%, acc_neg: 92.68%
+
+inter-video accuracy matrix:
+epochs: 70 
+
+acc_total: 
+[[88.25]] 
+
+acc_pos: 
+[[57.6]] 
+
+acc_neg: 
+[[92.68]]
+
+.
+for sequence: all, size: 849, acc: 86.98%, acc_pos: 53.59%, acc_neg: 91.8%
+
+inter-video accuracy matrix:
+epochs: 80 
+
+acc_total: 
+[[86.98]] 
+
+acc_pos: 
+[[53.59]] 
+
+acc_neg: 
+[[91.8]]
+
+.

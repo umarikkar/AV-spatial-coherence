@@ -202,7 +202,7 @@ def generate_audio_tensor(audio, sr, multi_mic = conf.logmelspectro['multi_mic']
                     tensor.append(utils.generate_mel_spectrograms(audio[:, n], sr, winlen, hoplen, numcep, n_fft, fmin, fmax))
        
     else:
-        logmel = utils.generate_mel_spectrograms(audio[:, ref_mic_id], sr, winlen, hoplen, numcep, n_fft, fmin, fmax)
+        logmel = utils.generate_mel_spectrograms(audio[:, 0], sr, winlen, hoplen, numcep, n_fft, fmin, fmax)
         tensor.append(logmel)
 
     tensor = np.concatenate(tensor, axis=0) # (n_channels, timebins, freqbins)
@@ -224,8 +224,9 @@ def read_video_file(sequence, train_or_test, rig, cam_vid, initial_time, base_pa
     period = conf.input['frame_len_sec']
     end_time = initial_time + period
     num_frames = conf.training_param['frame_vid_samples']
+    frame_seq = conf.training_param['frame_seq']
 
-    if num_frames !=1:
+    if num_frames !=1 and frame_seq:
         frame_idxs = np.linspace(round(initial_time*fps), round(end_time*fps), num_frames)
     else:
         frame_idxs = [round(initial_time*fps)]
@@ -404,14 +405,23 @@ def get_train_val(multi_mic=conf.logmelspectro['multi_mic'], train_or_test='trai
 load_idx=False
 ):
 
+
+
     """
     Function to get train and validation sets.
     """
+
+    if type(sequences) is not list:
+        sequences = (sequences).split()
+
     base_path = conf.input['project_path']
 
     frame_len = conf.input['frame_len_sec']
 
-    mic_info = 'MC_seq' if multi_mic else 'SC_seq'
+    mic_info = 'MC' if multi_mic else 'SC'
+
+    # if conf.training_param['frame_seq']:
+    mic_info += '_seq'
 
     h5py_dir_str = os.path.join(base_path, 'data', 'h5py_%s_sec%d' %(mic_info, frame_len),'')
 
@@ -448,12 +458,12 @@ load_idx=False
                             normalize=True, 
                             train_or_test='test'
                             )
-        if sequences != 'all':
+        if sequences != ['all']:
             idx_list = []
             for (idx, data) in enumerate(d_dataset):
                 word = data[3].decode("utf-8")
                 word = word[:word.find('-cam')]
-                if word == sequences:
+                if word in list(sequences):
                     idx_list.append(idx)
                 
             d_dataset = Subset(d_dataset, idx_list)
@@ -462,261 +472,3 @@ load_idx=False
 
 
 
-# WORKING WITH SAMPLES ---------------------------------------------------------------------------------------------------------------------------------------------
-
-def filter_silent(data):
-
-    """
-    filters out the silent samples and returns the reduced data batch.
-    """
-
-    speaking = data[6]
-
-    speak_idxs = [i for i, x in enumerate(speaking) if x == b'SPEAKING']
-
-    if not len(speak_idxs)==0:
-        data_new = []
-        for dat in data:
-            if type(dat) is list:
-                dat_new = []
-                for idx in speak_idxs:
-                    dat_new.append(dat[idx])
-            else:
-                dat_new = dat[speak_idxs]
-
-            data_new.append(dat_new)
-
-    else:
-        data_new = None
-
-    return data_new
-
-
-def create_neg_mask(seq_all,
-            remove_cam = True,
-            create_double = False,
-            contrast_param = conf.contrast_param,
-            device=conf.training_param['device']):
-
-    """
-    removes from the batch, contrastive pairs which contain same camera indexes.
-    creates the negative mask, with or without the hard negatives.
-    """
-
-    bs = len(seq_all)
-
-    if contrast_param['hard_negatives']:
-        neg_mask = torch.eye(bs)
-    else:
-        neg_mask = torch.ones((bs, bs))
-
-    zer = torch.zeros((bs, bs))
-    ide = torch.eye(bs)
-
-
-    if remove_cam:
-        for idx1, seq1 in enumerate(seq_all):
-            for idx2, seq2 in enumerate(seq_all):
-                if idx1 != idx2 and seq1 == seq2:
-                    neg_mask[idx1, idx2] = 0
-
-    if create_double:
-        if contrast_param['hard_negatives']: # the weird negatives only
-            if contrast_param['flip_mic'] and contrast_param['flip_img']:
-                neg_mask = torch.cat((torch.cat((neg_mask, ide), dim=1), torch.cat((ide, ide), dim=1)), dim=0)
-            elif contrast_param['flip_img']:
-                neg_mask = torch.cat((torch.cat((neg_mask, zer), dim=1), torch.cat((ide, ide), dim=1)), dim=0)
-            elif contrast_param['flip_mic']:
-                neg_mask = torch.cat((torch.cat((neg_mask, ide), dim=1), torch.cat((zer, ide), dim=1)), dim=0)
-        else:
-            neg_mask = torch.cat((torch.cat((neg_mask, zer), dim=1), torch.cat((zer, neg_mask), dim=1)), dim=0)
-
-
-    neg_mask = neg_mask.to(device=device)
-    return neg_mask
-
-
-def flip_imgs(imgs, cams, t_image=conf.data_param['t_image'], t_flip=conf.data_param['t_flip']):
-
-    """
-    augment and flips
-    Flips the image horizontally as to remove the spatial alignment. Note that the studio is also flipped.
-    Therefore the network might learn the studio flip only.
-    """
-
-    imgs_flipped = imgs*1.0
-    imgs_flipped = t_flip(imgs_flipped)
-
-    imgs = torch.concat((imgs, imgs_flipped), dim=0)
-
-    for i, _ in enumerate(imgs):
-        imgs[i] = t_image(imgs[i])
-        
-
-    cams_flipped = torch.concat((torch.flip(cams[:,:,:3], dims=(-1,)), torch.flip(cams[:,:,3:8], 
-                                dims=(-1,)), torch.flip(cams[:,:,8:], dims=(-1,))), dim=-1)
-    cams = torch.concat((cams, cams_flipped), dim=0)
-
-    return imgs, cams
-
-
-def flip_mics(audio,
-                return_all=True):
-
-    """
-    shift the microphone indexes by a random amount, making it a 'hard' negative. 
-
-    The initial microphones are physcially placed as:
-                    '12','13','14','15','16'
-    '01','02','03','04','05','06-ref','07','08','09','10','11'.
-
-    if ref_mic is 'k' we disregard the k'th channel index and shift the others. (For now, k=5 (index))
-    so idx of bottom channels: 0-9, and top channels: 10-14
-
-    As the default case, we shift the bottom mic indexes by 2 times the top mic indexes, but in the same direction.
-    Random horizontal flip of mics is also applied.
-
-    """
-    mic_top = torch.arange(11, 16)
-    mic_bot = torch.arange(0, 11)
-
-    aud_top = audio[:,mic_top]
-    aud_bot = audio[:,mic_bot]
-
-    aud_top, aud_bot = torch.flip(aud_top, dims=(1,)), torch.flip(aud_bot, dims=(1,))
-
-    audio_aug = torch.cat((aud_bot, aud_top), dim=1)
-
-    if return_all:
-        return torch.cat((audio, audio_aug), dim=0)
-    else:
-        return audio_aug
-
-
-def create_samples(data, 
-    device=conf.training_param['device'], 
-    augment=False,
-
-    data_param=conf.data_param, 
-    remove_silent=conf.data_param['filter_silent'],
-
-    remove_cam = True,
-    return_mask = True,
-
-    contrast_param = conf.contrast_param,
-
-    train_or_test = 'train'):
-
-    if train_or_test == 'train':
-        hard_negatives = contrast_param['hard_negatives']
-        flip_img = contrast_param['flip_img']
-        flip_mic = contrast_param['flip_mic']
-    else:
-        hard_negatives = flip_mic = flip_img = False
-
-    t_image = data_param['t_image']
-    
-    no_batch_flag = False
-
-    # # let us remove all the non-speaking samples.
-    # if remove_silent:
-    #     data = filter_silent(data)
-    #     no_batch_flag = True if data is None else False
-
-    if no_batch_flag:
-        return None
-
-    else:
-        # remove the same cam negative samples and do the other nice stuff.
-        audio = data[0]
-        cam = data[1]
-        all_frames = data[2]
-        seq_all = data[3]
-
-        bs = audio.shape[0]
-    
-        if conf.training_param['frame_seq']:
-            imgs_all = all_frames
-        else:
-            imgs_all = all_frames.squeeze(1)
-
-        imgs_all = imgs_all.to(device=device)
-        audio_all = audio.to(device=device)
-        cam_all = cam.to(device=device)
-
-        if flip_img:
-            imgs_all, cam_all = flip_imgs(imgs_all, cam_all)
-        else:
-            if augment:
-                for i,_ in enumerate(imgs_all):
-                    imgs_all[i] = t_image(imgs_all[i])
-
-        if flip_mic:
-            audio_all = flip_mics(audio_all)
-
-        if return_mask:
-            create_double = True if hard_negatives or flip_img or flip_mic else False
-            neg_mask = create_neg_mask(seq_all, 
-                            remove_cam=remove_cam, 
-                            create_double=create_double)
-        else:
-            neg_mask = None
-
-        # let us now convert the string arrays for male and female, as dict and append to output dictionary
-        if train_or_test == 'test':
-
-            meta_all = [data[-3], data[-2]]
-            meta_all = [[ast.literal_eval(i.decode("utf-8")) for i in d] for d in meta_all]
-            original_res = np.array([2048, 2448])
-            final_res = np.array([all_frames[0].shape[-2], all_frames[0].shape[-1]])
-
-            r = final_res / original_res
-            
-            for meta_person in meta_all:
-                for d in meta_person:
-                    d['x'] = int(float(d['x'])*r[0])
-                    d['y'] = int(float(d['y'])*r[1])
-
-            meta_male, meta_female = meta_all[0], meta_all[1]
-
-        else:
-            meta_male, meta_female = data[-3], data[-2]
-
-        rig = [int(r) for r in data[-1]]
-
-
-        samples = {
-            'imgs_all':imgs_all,
-            'audio_all':audio_all,
-            'cam_all':cam_all,
-            'seq_all':seq_all,
-            'neg_mask':neg_mask,
-            'raw_batch':bs,
-            'meta_male':meta_male,
-            'meta_female':meta_female,
-            'rig':rig,
-        }
-            
-        return samples
-
-
-def create_labels(BS, rem_count, device='cpu', heatmap=conf.dnn_arch['heatmap']):
-
-    neg_BS = BS - rem_count
-
-    if heatmap or conf.dnn_arch['AVOL']:
-        labels_pos = torch.ones(BS).to(device=device)
-        labels_neg = torch.zeros(neg_BS).to(device=device)
-        labels_all = torch.concat((labels_pos, labels_neg), dim=0).to(device=device)
-        
-    else:
-        one = torch.ones((BS,1))
-        zer = torch.zeros((neg_BS,1))
-
-        labels_pos = torch.concat((one, zer), dim=0)
-        labels_neg = (-1.0)*labels_pos + 1.0
-
-        labels_neg = torch.concat((zer, one), dim=0)
-        labels_all = torch.concat((labels_pos, labels_neg), dim=-1).to(device=device)
-
-    return labels_all

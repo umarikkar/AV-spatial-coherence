@@ -1,0 +1,97 @@
+for sequence: conversation1_t3, size: 308, acc: 100.0%, acc_pos: 100.0%, acc_neg: 100.0%
+for sequence: ['conversation1_t3', 'femalemonologue2_t3'], size: 418, acc: 98.41%, acc_pos: 100.0%, acc_neg: 98.18%
+for sequence: ['conversation1_t3', 'interactive1_t2'], size: 497, acc: 98.72%, acc_pos: 100.0%, acc_neg: 98.53%
+for sequence: ['conversation1_t3', 'interactive4_t3'], size: 440, acc: 98.08%, acc_pos: 100.0%, acc_neg: 97.8%
+for sequence: ['conversation1_t3', 'malemonologue2_t3'], size: 418, acc: 98.16%, acc_pos: 100.0%, acc_neg: 97.89%
+for sequence: femalemonologue2_t3, size: 110, acc: 100.0%, acc_pos: 100.0%, acc_neg: 100.0%
+for sequence: conversation1_t3, size: 308, acc: 100.0%, acc_pos: 100.0%, acc_neg: 100.0%
+for sequence: femalemonologue2_t3, size: 110, acc: 100.0%, acc_pos: 100.0%, acc_neg: 100.0%
+for sequence: interactive1_t2, size: 189, acc: 100.0%, acc_pos: 100.0%, acc_neg: 100.0%
+for sequence: interactive4_t3, size: 132, acc: 100.0%, acc_pos: 100.0%, acc_neg: 100.0%
+for sequence: malemonologue2_t3, size: 110, acc: 100.0%, acc_pos: 100.0%, acc_neg: 100.0%
+
+inter-video accuracy matrix:
+epochs: 100 
+
+acc_total: 
+[100. 100. 100. 100. 100.] 
+
+acc_pos: 
+[100. 100. 100. 100. 100.] 
+
+acc_neg: 
+[100. 100. 100. 100. 100.]
+
+.
+for sequence: ['conversation1_t3', 'femalemonologue2_t3'], size: 418, acc: 96.5%, acc_pos: 100.0%, acc_neg: 95.2%
+for sequence: ['conversation1_t3', 'interactive1_t2'], size: 497, acc: 96.58%, acc_pos: 100.0%, acc_neg: 95.53%
+for sequence: ['conversation1_t3', 'interactive4_t3'], size: 440, acc: 96.22%, acc_pos: 100.0%, acc_neg: 94.89%
+for sequence: ['conversation1_t3', 'malemonologue2_t3'], size: 418, acc: 97.3%, acc_pos: 100.0%, acc_neg: 96.32%
+for sequence: ['femalemonologue2_t3', 'interactive1_t2'], size: 299, acc: 95.56%, acc_pos: 100.0%, acc_neg: 94.12%
+for sequence: ['femalemonologue2_t3', 'interactive4_t3'], size: 242, acc: 96.54%, acc_pos: 100.0%, acc_neg: 95.56%
+for sequence: ['femalemonologue2_t3', 'malemonologue2_t3'], size: 220, acc: 96.43%, acc_pos: 100.0%, acc_neg: 95.43%
+for sequence: ['interactive1_t2', 'interactive4_t3'], size: 321, acc: 100.0%, acc_pos: 100.0%, acc_neg: nan%
+for sequence: ['interactive1_t2', 'malemonologue2_t3'], size: 299, acc: 94.84%, acc_pos: 100.0%, acc_neg: 93.27%
+for sequence: ['interactive4_t3', 'malemonologue2_t3'], size: 242, acc: 96.39%, acc_pos: 100.0%, acc_neg: 95.32%
+
+inter-video accuracy matrix:
+epochs: 100 
+
+acc_total: 
+[[  0.    96.5   96.58  96.22  97.3 ]
+ [  0.     0.    95.56  96.54  96.43]
+ [  0.     0.     0.   100.    94.84]
+ [  0.     0.     0.     0.    96.39]
+ [  0.     0.     0.     0.     0.  ]] 
+
+acc_pos: 
+[[  0. 100. 100. 100. 100.]
+ [  0.   0. 100. 100. 100.]
+ [  0.   0.   0. 100. 100.]
+ [  0.   0.   0.   0. 100.]
+ [  0.   0.   0.   0.   0.]] 
+
+acc_neg: 
+[[ 0.   95.2  95.53 94.89 96.32]
+ [ 0.    0.   94.12 95.56 95.43]
+ [ 0.    0.    0.     nan 93.27]
+ [ 0.    0.    0.    0.   95.32]
+ [ 0.    0.    0.    0.    0.  ]]
+
+.
+for sequence: ['conversation1_t3', 'femalemonologue2_t3'], size: 418, acc: 96.64%, acc_pos: 100.0%, acc_neg: 95.45%
+for sequence: ['conversation1_t3', 'interactive1_t2'], size: 497, acc: 96.12%, acc_pos: 100.0%, acc_neg: 94.92%
+for sequence: ['conversation1_t3', 'interactive4_t3'], size: 440, acc: 97.0%, acc_pos: 100.0%, acc_neg: 95.98%
+for sequence: ['conversation1_t3', 'malemonologue2_t3'], size: 418, acc: 97.14%, acc_pos: 100.0%, acc_neg: 96.07%
+for sequence: ['femalemonologue2_t3', 'interactive1_t2'], size: 299, acc: 95.38%, acc_pos: 100.0%, acc_neg: 93.87%
+for sequence: ['femalemonologue2_t3', 'interactive4_t3'], size: 242, acc: 96.61%, acc_pos: 100.0%, acc_neg: 95.68%
+for sequence: ['femalemonologue2_t3', 'malemonologue2_t3'], size: 220, acc: 98.0%, acc_pos: 100.0%, acc_neg: 97.44%
+for sequence: ['interactive1_t2', 'interactive4_t3'], size: 321, acc: 96.5%, acc_pos: 100.0%, acc_neg: 95.48%
+for sequence: ['interactive1_t2', 'malemonologue2_t3'], size: 299, acc: 96.01%, acc_pos: 100.0%, acc_neg: 94.82%
+for sequence: ['interactive4_t3', 'malemonologue2_t3'], size: 242, acc: 95.87%, acc_pos: 100.0%, acc_neg: 94.59%
+
+inter-video accuracy matrix:
+epochs: 100 
+
+acc_total: 
+[[ 0.   96.64 96.12 97.   97.14]
+ [ 0.    0.   95.38 96.61 98.  ]
+ [ 0.    0.    0.   96.5  96.01]
+ [ 0.    0.    0.    0.   95.87]
+ [ 0.    0.    0.    0.    0.  ]] 
+
+acc_pos: 
+[[  0. 100. 100. 100. 100.]
+ [  0.   0. 100. 100. 100.]
+ [  0.   0.   0. 100. 100.]
+ [  0.   0.   0.   0. 100.]
+ [  0.   0.   0.   0.   0.]] 
+
+acc_neg: 
+[[ 0.   95.45 94.92 95.98 96.07]
+ [ 0.    0.   93.87 95.68 97.44]
+ [ 0.    0.    0.   95.48 94.82]
+ [ 0.    0.    0.    0.   94.59]
+ [ 0.    0.    0.    0.    0.  ]]
+
+.

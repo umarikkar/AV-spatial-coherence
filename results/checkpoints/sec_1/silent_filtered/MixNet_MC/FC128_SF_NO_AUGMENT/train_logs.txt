@@ -1,0 +1,11 @@
+2022-08-21 11:11:33.998318 Epoch 1, Train loss 5.0697, , Val loss 5.0816, Perfect loss 0.0012
+2022-08-21 11:14:16.942268 Epoch 1, Train loss 4.6472, , Val loss 1.789, Perfect loss 0.0012
+2022-08-21 11:16:15.044109 Epoch 2, Train loss 0.9291, , Val loss 0.3142, Perfect loss 0.0012
+2022-08-21 11:18:10.167295 Epoch 3, Train loss 0.0804, , Val loss 0.0324, Perfect loss 0.0012
+2022-08-21 11:20:06.742381 Epoch 4, Train loss 0.0382, , Val loss 0.0118, Perfect loss 0.0012
+2022-08-21 11:22:03.005159 Epoch 5, Train loss 0.0496, , Val loss 0.0087, Perfect loss 0.0012
+2022-08-21 11:24:05.067712 Epoch 6, Train loss 0.02, , Val loss 0.0153, Perfect loss 0.0012
+2022-08-21 11:26:24.282041 Epoch 7, Train loss 0.0194, , Val loss 0.0065, Perfect loss 0.0012
+2022-08-21 11:28:37.241942 Epoch 8, Train loss 0.0137, , Val loss 0.0111, Perfect loss 0.0012
+2022-08-21 11:30:40.473034 Epoch 9, Train loss 0.0124, , Val loss 0.0171, Perfect loss 0.0012
+2022-08-21 11:32:42.024312 Epoch 10, Train loss 0.0147, , Val loss 0.0083, Perfect loss 0.0012

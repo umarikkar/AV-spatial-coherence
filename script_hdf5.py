@@ -22,7 +22,7 @@ elif train_or_test=='test':
     csv_file = os.path.join(base_path, 'data', 'csv', train_or_test + '_new.csv')
 
 remove_silent = conf.data_param['filter_silent']
-
+num_frames = conf.training_param['frame_vid_samples']
 
 
 def main():
@@ -34,9 +34,11 @@ def main():
     h5py_dir.mkdir(exist_ok=True, parents=True)
 
     if not remove_silent:
-        h5py_name = '%s_%s.h5' % (train_or_test, (args.info))
+        h5py_name = '%s_%s' % (train_or_test, (args.info))
     else: 
-        h5py_name = '%s_%s_sil.h5' % (train_or_test, (args.info))
+        h5py_name = '%s_%s_sil' % (train_or_test, (args.info))
+
+    h5py_name += '.h5'
 
     print(h5py_name)
 
@@ -61,9 +63,9 @@ def main():
         # data_loader = DataLoader(d_dataset, batch_size=1, shuffle=False)
 
         count = 0
-        for data in  tqdm(data_loader, bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}', leave=None):
+        for data in  data_loader:
 
-            # print('count: {}/{}'.format('%s'%count, '%s'%total_size))
+            print('count: {}/{}'.format('%s'%count, '%s'%total_size))
 
             audio = data[0]
             cam = data[1]
@@ -157,7 +159,8 @@ if __name__ == "__main__":
 
     data_str = 'MC' if conf.logmelspectro['multi_mic'] else 'SC'
 
-    data_str = data_str + '_seq'
+    if conf.training_param['frame_seq']:
+        data_str = data_str + '_seq'
         
     parser = argparse.ArgumentParser(description='Extract and save input features')
     parser.add_argument('--info', type=str, default=data_str, metavar='S',

@@ -6,20 +6,31 @@ import torch
 from tqdm import tqdm
 
 import core.config as conf
-from fn.dataset import create_samples, get_train_val
+from fn.sampling import create_samples
+from fn.dataset import get_train_val
 
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 import numpy as np
 
-from core.utils import n_fold_generator
+
+# # setup the curriculum learning algorithm
+# def curriculum_learner():
+
+#     seq_all = ['conversation',  'interactive', 'malemonologue', 'femalemonologue',]
+
+#     seq_epoch.append
+
+#     return seq_epoch
+
 
 def Trainer(net,
             epochs, 
             loss_fn,
             optimiser,
             dataset,
-            bs = conf.training_param['batch_size']):
+            bs = conf.training_param['batch_size'],
+            curriculum_learning = conf.training_param['curriculum_learning']):
 
     def save_model(epoch, net, optimiser, net_path):
 
@@ -38,7 +49,29 @@ def Trainer(net,
 
     data_all = torch.utils.data.random_split(dataset, ls)
 
+    # setup the curriculum learning rule.
+    if curriculum_learning:
+        curr_setup = {
+            'bs' : [32, 32, 16, 16],
+            'neg' : [True, True, True, False],
+            'epoch_steps' : 80,
+            'seqs' : [['conversation', 'interactive'], ['interactive'], [], []]
+        }
+
+
     for epoch in range(epochs[0], epochs[1] + 1):
+
+        if curriculum_learning:
+            ep_idx = (epoch-1) // curr_setup['epoch_steps']
+            ep_idx = ep_idx if ep_idx < len(curr_setup['bs'])-1 else -1
+            bs = curr_setup['bs'][ep_idx]
+            curr_set = {
+                'seq_remove' : curr_setup['seqs'][ep_idx],
+                'neg' : curr_setup['neg'][ep_idx]
+            }
+            print('sequences to be removed:', curr_set['seq_remove'], '\nbatch_size='+str(bs), )
+        else:
+            curr_set = None
 
         val_idx = epoch%k
 
@@ -60,32 +93,15 @@ def Trainer(net,
         loss_l2 = 0.0
         net.train()
 
-        min_val = math.inf
         
         for data in tqdm(train_loader, bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}', leave=None):
             
-            # plt.figure()
-            # for id, im in enumerate(data[0][0]):
-            #     # print()
-            #     plt.subplot(4,4,id+1)
-            #     plt.imshow(im, aspect='auto')
-            #     plt.colorbar()
-            #     plt.title(id)
-            # plt.show()
-
-            samples = create_samples(data, augment=True, device=device)
+            samples = create_samples(data, augment=True, device=device, curriculum_setting=curr_set)
 
             if samples is not None:
 
                 scores_raw = net(samples['imgs_all'], samples['audio_all'], samples['cam_all'] )
                 loss_dict, loss_perfect = loss_fn(scores_raw, samples['neg_mask'])
-
-                # a = (scores_raw*samples['neg_mask']).cpu().detach().numpy()
-                # import matplotlib.pyplot as plt
-                # plt.figure()
-                # plt.imshow(a)
-                # plt.colorbar()
-                # plt.show()
 
                 loss = loss_dict['total']
                 # loss function --->
@@ -120,16 +136,12 @@ def Trainer(net,
 
                 for data in val_loader:
 
-                    samples = create_samples(data, augment=False, device=device)
+                    samples = create_samples(data, augment=False, device=device, curriculum_setting=curr_set)
 
                     if samples is not None:
-
                         scores_raw = net(samples['imgs_all'], samples['audio_all'], samples['cam_all'] )
-
-                        lossVal, _ = loss_fn(scores_raw, samples['neg_mask'])
-
-                        lossVal = lossVal['total']
-
+                        loss_dict, _ = loss_fn(scores_raw, samples['neg_mask'])
+                        lossVal = loss_dict['total']
                         loss_val += lossVal.item()
 
                     else:
@@ -149,12 +161,6 @@ def Trainer(net,
         net_path = os.path.join(file_path, net_name + '.pt') # results/checkpoints/MultiChannel_sz/net_ep_X.pt
 
         l_val = round(loss_val / len_val, 4)
-
-        if l_val < min_val:
-            min_val = l_val
-            update = True
-        else:
-            update = False
 
 
         verbose_str = '{} Epoch {}, Train loss {}, '.format(
@@ -179,7 +185,7 @@ def Trainer(net,
         # if update:
         #     save_model(epoch, net, optimiser, net_path)
 
-        if epoch == 1 or epoch % 4 == 0:
+        if epoch == 1 or epoch % 10 == 0:
             save_model(epoch, net, optimiser, net_path)
 
 
@@ -190,6 +196,8 @@ def Evaluator(net, loader, loss_fn,
             epochs=1,
             verbose=True,
             count=None,
+            seq = 'all',
+            vid_contrast=False,
             ):
 
     device = (torch.device('cuda') if torch.cuda.is_available()
@@ -198,6 +206,13 @@ def Evaluator(net, loader, loss_fn,
     
     net.to(device=device)
     net.eval()
+
+    net.set_train = True
+
+
+    if loader is None:
+        _ , _ , data_all = get_train_val(train_or_test='test', sequences=seq)
+        loader = DataLoader(data_all, batch_size=1, shuffle=True, num_workers=0, pin_memory=True)
 
     acc_avg, acc_pos_avg, acc_neg_avg = 0.0, 0.0, 0.0
 
@@ -212,9 +227,11 @@ def Evaluator(net, loader, loss_fn,
 
             for data in tqdm(loader, bar_format='{l_bar}{bar:20}{r_bar}{bar:-20b}', disable=True):
                 
-                imgs_all, audio_all, cam_all, _, neg_mask = create_samples(data, augment=True, device=device)
+                samples = create_samples(data, augment=False, device=device, return_mask=True, train_or_test='test', vid_contrast=vid_contrast)
 
-                scores_raw = net(imgs_all, audio_all, cam_all)
+                neg_mask = samples['neg_mask']
+
+                scores_raw = net(samples['imgs_all'], samples['audio_all'], samples['cam_all'])
 
                 errors = loss_fn(scores_raw, neg_mask, return_err=True)
 
@@ -316,6 +333,7 @@ def plot_results(net, ep, loader=None, seq='all', num_plots=5, device=conf.train
 
                 c_max = np.flip(np.array(np.unravel_index(heatmap.argmax(), heatmap.shape)))                 # i=y, j=x
 
+                plt.scatter(c_max[0], c_max[1], marker='x', s=100, color='g')
                 acc = 100*(heatmap.shape[0] - np.abs(c-c_max)) / heatmap.shape[0]
 
                 acc_x, acc_y = acc[0], acc[1]
@@ -334,15 +352,22 @@ def plot_results(net, ep, loader=None, seq='all', num_plots=5, device=conf.train
             plt.suptitle('epochs: '+str(ep))
 
             fig_path = os.path.join(conf.filenames['net_folder_path'], conf.filenames['train_val'])
+            fol_name = 'ep_%s'%ep
+
+            fol_path = os.path.join(fig_path, fol_name)
+
+            if fol_name not in os.listdir(fig_path):
+                os.mkdir(fol_path)
+
             img_name = 'ep_%s_%s_1'%(ep,seq)+'.png'
 
-            while img_name in os.listdir(fig_path):
+            while img_name in os.listdir(fol_path):
 
                 num = int(img_name[img_name.find('.png')-1]) + 1
 
                 img_name = img_name[:img_name.find('.png')-1] + str(num) + '.png'
 
-            plt.savefig(os.path.join(fig_path, img_name))
+            plt.savefig(os.path.join(fol_path, img_name))
             plt.close()
             plt.show()
 
@@ -369,13 +394,13 @@ def eval_loc(net, ep, loader=None, seq='all', device=conf.training_param['device
 
     for n, data in enumerate(loader):
 
-        samples = create_samples(data, augment=False, device=device, return_mat=False, train_or_test='test')
+        samples = create_samples(data, augment=False, device=device, return_mask=False, train_or_test='test')
 
         if samples is not None:
             scores, heatmap = net(samples['imgs_all'], samples['audio_all'], samples['cam_all'], flip_img=False)
 
-
             heatmap = heatmap.cpu().detach().numpy()
+
 
             romeo = samples['meta_male']
             juliet = samples['meta_female']
@@ -388,12 +413,24 @@ def eval_loc(net, ep, loader=None, seq='all', device=conf.training_param['device
             sz = heatmap.shape[-1]
 
             for idx, tup in enumerate(zip(romeo, juliet)):
+
+                im = samples['imgs_all'][idx].permute(1,2,0).cpu().detach().numpy()
+
+                # plt.figure()
+                # plt.subplot(1,2,1)
+                # plt.imshow(im)
+                # plt.subplot(1,2,2)
+                # plt.imshow(heatmap[idx]) 
+                # plt.show()
+
                 if romeo[idx]['activity']=='SPEAKING':
                     spk.append('Romeo')
                     tup_ = tup[0]  
                 elif juliet[idx]['activity']=='SPEAKING':
                     spk.append('Juliet')
                     tup_ = tup[1]
+
+                # print(tup_['x'], tup_['y'])
                     
                 c_GT[idx,0], c_GT[idx,1] = tup_['x']*sz/224, tup_['y']*sz/224
 
@@ -431,7 +468,7 @@ def eval_loc(net, ep, loader=None, seq='all', device=conf.training_param['device
 
     acc_box = []
     for tol in tolerance:
-        t = tol * heatmap.shape[0] / 100
+        t = tol
 
         a_x = round(100*sum(abs(e2_x) <= t) / len(e2_x), 2)
         a_y = round(100*sum(abs(e2_y) <= t) / len(e2_y), 2)

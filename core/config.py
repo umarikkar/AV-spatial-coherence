@@ -41,6 +41,13 @@ def set_filename(name='AVE',
 
     if training_param['frame_seq']:
         net_name += '_MF'
+    else:
+        net_name += '_SF'
+
+    if dnn_arch['small_img']:
+        net_name += '_S'
+    else:
+        net_name += '_L'
 
     if not dnn_arch['small_features']:
         net_name += '_large'
@@ -48,17 +55,32 @@ def set_filename(name='AVE',
     if not name=='AVE' and dnn_arch['ave_backbone']:
         net_name += '_pre'
 
-    if hard_negatives:
-        net_name += '_hrd'
-    else:
-        net_name += '_mix'
+    if name=='AVE':
+        if not dnn_arch['ave_L2']:
+            net_name += '_CS'
 
-    if contrast_param['flip_mic'] and contrast_param['flip_img']:
-        net_name = net_name + '_flip'
-    elif contrast_param['flip_img']:
-        net_name = net_name + '_img_' + str(contrast_param['alpha'])
-    elif contrast_param['flip_mic']:
-        net_name += '_mic'
+    if name=='FactorNet':
+        net_name += '_' + dnn_arch['vsl_merge_type']
+
+    else:
+        if hard_negatives:
+            net_name += '_hrd'
+        else:
+            if contrast_param['flip_mic'] and contrast_param['flip_img']:
+                net_name = net_name + '_mix'
+
+        if contrast_param['flip_mic'] and contrast_param['flip_img']:
+            net_name = net_name + '_flip'
+        elif contrast_param['flip_img']:
+            net_name = net_name + '_img_' + str(contrast_param['alpha'])
+        elif contrast_param['flip_mic']:
+            net_name += '_mic'
+
+    if training_param['curriculum_learning']:
+        net_name += '_CL'
+
+    # if training_param['rig_neg']:
+    # net_name += '_rig'
 
     # if contrast_param['flip_img']:
     #     net_name = net_name + '_img_' + str(contrast_param['alpha'])
@@ -66,14 +88,9 @@ def set_filename(name='AVE',
     # if contrast_param['flip_mic']:
     #     net_name += '_mic'
 
+    # net_name += '_SM'
 
     file_path = os.path.join(fol_name, net_name)
-
-    # if input['frame_len_sec']==1:
-    #     file_path = os.path.join(os.getcwd(), 'results', 'sec_1','checkpoints', fol_name)  # results/checkpoints/MultiChannel_sz
-    # else:
-    #     file_path = os.path.join(os.getcwd(), 'results', 'sec_2','checkpoints', fol_name)  # results/checkpoints/MultiChannel_sz
-
 
     if not os.path.exists(file_path):
         os.makedirs(file_path)
@@ -104,25 +121,20 @@ input = {
 
 dnn_arch = {
 
-    # """
-    # 'vid_custom':False,
-    # 'vid_pretrained': True,
-    # 'vid_freeze':True,
 
-    # 'aud_custom': True,      
-    # 'aud_pretrained': False,
-    # 'aud_freeze': False,
-
-    # """
-
-    'net_name':'AVOL',
-    # AVE, VSL, AVOL are the options
+    'net_name':'AVE',
+    # AVE, VSL, AVOL, SpaceNet, FactorNet, MixNet are the options
     'heatmap':False, # only applies to the heatmap
+
+    'ave_L2':True,
 
 
     'ave_backbone':False, # use pretrained backbone for AVENet
 
+    'vsl_merge_type':'L2',
+
     'small_features':True, # small feature map (14x14) otherwise (28x28)
+    'small_img':True,
     'FC_size':128
 
 }
@@ -137,7 +149,7 @@ training_param = {
     #'criterion': nn.CrossEntropyLoss,
     'learning_rate': 0.0001, # this is used if user does not provide another lr with the parser
     'epochs': 60, # this is used if user does not provide the epoch number with the parser
-    'batch_size': 16,
+    'batch_size': 8,
     'frame_len_samples': input['frame_len_sec'] * input['sr'], # number of audio samples in 2 sec
 
     'frame_seq': False,
@@ -151,6 +163,8 @@ training_param = {
     'device': device,
     'train_binary': False,
 
+    'curriculum_learning':False # FOR CURRICULUM LEARNING
+
     #'input_norm': 'freq_wise', # choose between: 'freq_wise', 'global', or None
     #'step_size':,
     #'gamma': ,
@@ -159,19 +173,21 @@ training_param = {
 contrast_param = {
 
     'hard_negatives':False, # only consider the flip
-    'flip_mic':True,
-    'flip_img':True,
+    'flip_mic':False,
+    'flip_img':False,
     'alpha':0.25,
-
+    'rig_neg':False,
 }
 
 data_param = {
 
     't_image' : transforms.Compose([
-        transforms.ColorJitter((0.6, 1.4), (0.6, 1.4), (0.6, 1.4), (-0.2, 0.2)),
+        transforms.ColorJitter((0.9, 1.1), (0.9, 1.1), (0.9, 1.1), (-0.05, 0.05)),
+        # transforms.ColorJitter((0.6, 1.4), (0.6, 1.4), (0.6, 1.4), (-0.2, 0.2)),
+
         transforms.RandomGrayscale(0.2),
-        transforms.RandomInvert(p=0.5),
-        transforms.RandomVerticalFlip(p=0.5),
+        # transforms.RandomInvert(p=0.5),
+        # transforms.RandomVerticalFlip(p=0.5),
         ]) ,
 
     't_flip' : transforms.Compose([
@@ -189,7 +205,7 @@ data_param = {
 
 logmelspectro = {
     'get_gcc':  True,
-    'multi_mic': True,
+    'multi_mic': False,
     'mfcc_azimuth_only': True, # False for using all the 89 look dir, True only the 15 central-horizontal look dir
     'winlen': 512, # samples
     'hoplen': 100, # samples

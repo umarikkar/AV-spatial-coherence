@@ -23,19 +23,20 @@ def main():
     optimiser = optim.Adam(net.parameters(), lr=1e-4)
     # optimiser = optim.SGD(net.parameters(), lr=1e-2)
 
-    epochs = conf.training_param['epochs']
+    # epochs = conf.training_param['epochs']
+    epochs=100
     bs = conf.training_param['batch_size']
 
     # loading network ------------------------------------------
 
-    load_net = True
+    load_net = False
 
     if load_net:
 
         fol_name = conf.filenames['net_folder_path']
 
         print(fol_name)
-        ep =  16
+        ep =  10
 
         net_name = 'net_ep_%s.pt'%ep
         net_path = os.path.join(fol_name, net_name)
