@@ -1,6 +1,7 @@
 import datetime
 import os
 import math
+import random
 
 import torch
 from tqdm import tqdm
@@ -100,27 +101,32 @@ def Trainer(net,
 
             if samples is not None:
 
-                scores_raw = net(samples['imgs_all'], samples['audio_all'], samples['cam_all'] )
-                loss_dict, loss_perfect = loss_fn(scores_raw, samples['neg_mask'])
+                if samples['imgs_all'].shape[0] != 1:
 
-                loss = loss_dict['total']
-                # loss function --->
-                l2_lambda = 0.00001
-                l2_reg = l2_lambda*sum(p.pow(2.0).sum() for p in net.parameters())**0.5 # L2 reg for all the weights
-                loss += l2_reg
-                
+                    scores_raw = net(samples['imgs_all'], samples['audio_all'], samples['cam_all'] )
+                    loss_dict, loss_perfect = loss_fn(scores_raw, samples['neg_mask'])
 
-                optimiser.zero_grad() 
-                loss.backward()
-                optimiser.step()
+                    loss = loss_dict['total']
+                    # loss function --->
+                    l2_lambda = 0.00001
+                    l2_reg = l2_lambda*sum(p.pow(2.0).sum() for p in net.parameters())**0.5 # L2 reg for all the weights
+                    loss += l2_reg
+                    
 
-                loss_train += loss.item()
-                loss_perf += (loss_perfect['total'] + l2_reg).item()
-                loss_l2 += l2_reg
+                    optimiser.zero_grad() 
+                    loss.backward()
+                    optimiser.step()
 
-                if conf.contrast_param['flip_img'] or conf.contrast_param['flip_mic']:
-                    loss_ez = loss_ez + loss_dict['easy'].item() if loss_dict['easy'] is not None else 0.0
-                    loss_hd = loss_hd + loss_dict['hard'].item() if loss_dict['hard'] is not None else 0.0
+                    loss_train += loss.item()
+                    loss_perf += (loss_perfect['total'] + l2_reg).item()
+                    loss_l2 += l2_reg
+
+                    if conf.contrast_param['flip_img'] or conf.contrast_param['flip_mic']:
+                        loss_ez = loss_ez + loss_dict['easy'].item() if loss_dict['easy'] is not None else 0.0
+                        loss_hd = loss_hd + loss_dict['hard'].item() if loss_dict['hard'] is not None else 0.0
+
+                else:
+                    pass
 
             else:
                 pass
@@ -214,9 +220,9 @@ def Evaluator(net, loader, loss_fn,
         _ , _ , data_all = get_train_val(train_or_test='test', sequences=seq)
         loader = DataLoader(data_all, batch_size=1, shuffle=True, num_workers=0, pin_memory=True)
 
-    acc_avg, acc_pos_avg, acc_neg_avg = 0.0, 0.0, 0.0
+    acc_avg, acc_pos_avg, acc_neg_avg = [], [], []
 
-    for _ in range(1, epochs+1):
+    for ep in range(1, epochs+1):
 
         e_total, e_pos, e_neg = 0.0, 0.0, 0.0
         n_total, n_pos, n_neg = 0.0, 0.0, 0.0
@@ -258,13 +264,24 @@ def Evaluator(net, loader, loss_fn,
             verbose_str = 'acc: {}%, acc_pos: {}%, acc_neg: {}%'.format(acc, acc_pos, acc_neg)
             print(verbose_str)
 
-        acc_avg += acc
-        acc_pos_avg += acc_pos
-        acc_neg_avg += acc_neg
+        acc_avg.append(acc.cpu())
+        acc_pos_avg.append(acc_pos.cpu())
+        acc_neg_avg.append(acc_neg.cpu())
 
-    acc_avg = round(float(acc_avg / epochs) , 2)
-    acc_pos_avg = round(float(acc_pos_avg / epochs) , 2)
-    acc_neg_avg = round(float(acc_neg_avg / epochs) , 2)
+        # print('epochs done:', ep)
+
+    acc_avg = torch.FloatTensor(acc_avg)
+    acc_pos_avg = torch.FloatTensor(acc_pos_avg)
+    acc_neg_avg = torch.FloatTensor(acc_neg_avg)
+
+    acc_neg_mean = acc_neg_avg.mean()
+    acc_neg_std = acc_neg_avg.std()
+
+    print(acc_neg_mean, 2*acc_neg_std)
+
+    acc_avg = round(float(acc_avg.mean()) , 2)
+    acc_pos_avg = round(float(acc_pos_avg.mean()) , 2)
+    acc_neg_avg = round(float(acc_neg_avg.mean()) , 2)
 
     return acc_avg, acc_pos_avg, acc_neg_avg
 
@@ -303,15 +320,15 @@ def plot_results(net, ep, loader=None, seq='all', num_plots=5, device=conf.train
                 R = True if romeo['activity']=='SPEAKING' else False
                 J = True if juliet['activity']=='SPEAKING' else False
 
-                R_coord = np.array([romeo['x'], romeo['y']])*heatmap.shape[-1]/224
-                J_coord = np.array([juliet['x'], juliet['y']])*heatmap.shape[-1]/224
+                R_coord = (np.array([romeo['x'], romeo['y']])*heatmap.shape[-1]/224)
+                J_coord = (np.array([juliet['x'], juliet['y']])*heatmap.shape[-1]/224)
 
                 plt.subplot(2, num_plots, count+1)
                 plt.imshow(imgs_all, aspect='equal')
                 plt.axis('off')
 
                 plt.subplot(2, num_plots, num_plots+count+1)
-                plt.imshow(heatmap, vmin=0, vmax=1, aspect='equal')
+                plt.imshow(heatmap, aspect='equal')
 
                 if R:
                     plt.scatter(R_coord[0], R_coord[1], s=100, color="r")
@@ -320,7 +337,7 @@ def plot_results(net, ep, loader=None, seq='all', num_plots=5, device=conf.train
 
                 if R and J:
                     speaker = 'both'
-                    c = None
+                    c = R_coord
                 elif R:
                     speaker = 'Romeo'
                     c = R_coord
@@ -332,6 +349,10 @@ def plot_results(net, ep, loader=None, seq='all', num_plots=5, device=conf.train
                     c = None
 
                 c_max = np.flip(np.array(np.unravel_index(heatmap.argmax(), heatmap.shape)))                 # i=y, j=x
+
+                # x = np.array([c_max[0]]*14) + np.array([random.randint(-1, 1)]*14)
+                # y = list(range(14))
+                # plt.plot(x, y, color="white", linewidth=4)
 
                 plt.scatter(c_max[0], c_max[1], marker='x', s=100, color='g')
                 acc = 100*(heatmap.shape[0] - np.abs(c-c_max)) / heatmap.shape[0]
@@ -359,7 +380,7 @@ def plot_results(net, ep, loader=None, seq='all', num_plots=5, device=conf.train
             if fol_name not in os.listdir(fig_path):
                 os.mkdir(fol_path)
 
-            img_name = 'ep_%s_%s_1'%(ep,seq)+'.png'
+            img_name = '%s_1'%(seq)+'.png'
 
             while img_name in os.listdir(fol_path):
 
@@ -397,7 +418,18 @@ def eval_loc(net, ep, loader=None, seq='all', device=conf.training_param['device
         samples = create_samples(data, augment=False, device=device, return_mask=False, train_or_test='test')
 
         if samples is not None:
+
+            a = samples['imgs_all'][0:5]
+
+            # plt.figure()
+            # for i in range(5):
+            #     plt.subplot(1,5,i+1)
+            #     plt.imshow(a[i].permute(1,2,0).cpu().detach().numpy())
+            #     plt.axis('off')
+            # plt.show()
+
             scores, heatmap = net(samples['imgs_all'], samples['audio_all'], samples['cam_all'], flip_img=False)
+
 
             heatmap = heatmap.cpu().detach().numpy()
 

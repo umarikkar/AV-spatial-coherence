@@ -20,7 +20,7 @@ from tqdm import tqdm
 
 def main():
 
-    random.seed(5)
+    # random.seed(5)
 
     # loading network ----------------------------------------
 
@@ -34,7 +34,7 @@ def main():
     seq_list = ['conversation1_t3', 'femalemonologue2_t3', 'interactive1_t2', 'interactive4_t3', 'malemonologue2_t3']
     # seq_list = ['femalemonologue2_t3']
 
-    epoch_settings = [80]
+    epoch_settings = [60]
 
     for ep in epoch_settings:
 
@@ -64,7 +64,7 @@ def main():
         for i, seq1 in enumerate(seq_list):
             for j, seq2 in enumerate(seq_list):
 
-                if j > i:   
+                if j >= i:   
                     if seq1 != seq2:
                         seq = [seq1, seq2]
                         vid_contrast = True
@@ -76,7 +76,7 @@ def main():
 
                     loader = DataLoader(data_all, batch_size=bs, shuffle=True, num_workers=0, pin_memory=True)
 
-                    acc, acc_pos, acc_neg = Evaluator(net, loader=loader, loss_fn=loss_fn,  epochs=1, verbose=False, vid_contrast=vid_contrast)
+                    acc, acc_pos, acc_neg = Evaluator(net, loader=loader, loss_fn=loss_fn,  epochs=10, verbose=False, vid_contrast=vid_contrast)
 
                     acc_mat[i,j] = acc
                     acc_pos_mat[i,j] = acc_pos

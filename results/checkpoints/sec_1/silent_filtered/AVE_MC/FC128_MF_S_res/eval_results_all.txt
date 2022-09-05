@@ -1,0 +1,30 @@
+for sequence: all, size: 849, acc: 96.97%, acc_pos: 100.0%, acc_neg: 96.54%
+
+inter-video accuracy matrix:
+epochs: 60 
+
+acc_total: 
+[[96.97]] 
+
+acc_pos: 
+[[100.]] 
+
+acc_neg: 
+[[96.54]]
+
+.
+for sequence: all, size: 849, acc: 96.77%, acc_pos: 100.0%, acc_neg: 96.55%
+
+inter-video accuracy matrix:
+epochs: 60 
+
+acc_total: 
+[[96.77]] 
+
+acc_pos: 
+[[100.]] 
+
+acc_neg: 
+[[96.55]]
+
+.

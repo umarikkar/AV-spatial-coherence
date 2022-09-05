@@ -1,0 +1,10 @@
+epochs: 1, err_dist: x:4.64, y:1.15, bias corrected: x:1.62, y:0.56
+tolerance: 1, acc_box: x:0.53, y:45.50, x_corr:31.75, y_corr:85.19
+tolerance: 2, acc_box: x:6.35, y:89.95, x_corr:65.61, y_corr:99.47
+tolerance: 3, acc_box: x:25.93, y:100.00, x_corr:91.01, y_corr:100.00
+tolerance: 4, acc_box: x:43.39, y:100.00, x_corr:98.41, y_corr:100.00
+tolerance: 5, acc_box: x:58.20, y:100.00, x_corr:99.47, y_corr:100.00
+tolerance: 6, acc_box: x:73.54, y:100.00, x_corr:100.00, y_corr:100.00
+
+
+

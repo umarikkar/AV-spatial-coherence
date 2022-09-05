@@ -1,0 +1,41 @@
+for sequence: conversation1_t3, size: 308, acc: 100.0%, acc_pos: 100.0%, acc_neg: 100.0%
+for sequence: ['conversation1_t3', 'femalemonologue2_t3'], size: 418, acc: 96.94%, acc_pos: 100.0%, acc_neg: 95.83%
+for sequence: ['conversation1_t3', 'interactive1_t2'], size: 497, acc: 96.69%, acc_pos: 100.0%, acc_neg: 95.67%
+for sequence: ['conversation1_t3', 'interactive4_t3'], size: 440, acc: 96.92%, acc_pos: 100.0%, acc_neg: 95.88%
+for sequence: ['conversation1_t3', 'malemonologue2_t3'], size: 418, acc: 95.51%, acc_pos: 100.0%, acc_neg: 93.8%
+for sequence: femalemonologue2_t3, size: 110, acc: 100.0%, acc_pos: 100.0%, acc_neg: 100.0%
+for sequence: ['femalemonologue2_t3', 'interactive1_t2'], size: 299, acc: 95.69%, acc_pos: 100.0%, acc_neg: 94.27%
+for sequence: ['femalemonologue2_t3', 'interactive4_t3'], size: 242, acc: 97.17%, acc_pos: 100.0%, acc_neg: 96.4%
+for sequence: ['femalemonologue2_t3', 'malemonologue2_t3'], size: 220, acc: 96.6%, acc_pos: 100.0%, acc_neg: 95.64%
+for sequence: interactive1_t2, size: 189, acc: 100.0%, acc_pos: 100.0%, acc_neg: 100.0%
+for sequence: ['interactive1_t2', 'interactive4_t3'], size: 321, acc: 96.28%, acc_pos: 100.0%, acc_neg: 95.12%
+for sequence: ['interactive1_t2', 'malemonologue2_t3'], size: 299, acc: 96.77%, acc_pos: 100.0%, acc_neg: 95.8%
+for sequence: interactive4_t3, size: 132, acc: 100.0%, acc_pos: 100.0%, acc_neg: 100.0%
+for sequence: ['interactive4_t3', 'malemonologue2_t3'], size: 242, acc: 96.58%, acc_pos: 100.0%, acc_neg: 95.57%
+for sequence: malemonologue2_t3, size: 110, acc: 100.0%, acc_pos: 100.0%, acc_neg: 100.0%
+
+inter-video accuracy matrix:
+epochs: 60 
+
+acc_total: 
+[[100.    96.94  96.69  96.92  95.51]
+ [  0.   100.    95.69  97.17  96.6 ]
+ [  0.     0.   100.    96.28  96.77]
+ [  0.     0.     0.   100.    96.58]
+ [  0.     0.     0.     0.   100.  ]] 
+
+acc_pos: 
+[[100. 100. 100. 100. 100.]
+ [  0. 100. 100. 100. 100.]
+ [  0.   0. 100. 100. 100.]
+ [  0.   0.   0. 100. 100.]
+ [  0.   0.   0.   0. 100.]] 
+
+acc_neg: 
+[[100.    95.83  95.67  95.88  93.8 ]
+ [  0.   100.    94.27  96.4   95.64]
+ [  0.     0.   100.    95.12  95.8 ]
+ [  0.     0.     0.   100.    95.57]
+ [  0.     0.     0.     0.   100.  ]]
+
+.

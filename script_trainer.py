@@ -16,6 +16,8 @@ from fn.nets import set_network
 def main():
 
     random.seed(5)
+    torch.manual_seed(0)
+    
     multi_mic = conf.logmelspectro['multi_mic']
 
     net, loss_fn = set_network()
@@ -24,7 +26,7 @@ def main():
     # optimiser = optim.SGD(net.parameters(), lr=1e-2)
 
     # epochs = conf.training_param['epochs']
-    epochs=100
+    epochs=60
     bs = conf.training_param['batch_size']
 
     # loading network ------------------------------------------
@@ -36,7 +38,7 @@ def main():
         fol_name = conf.filenames['net_folder_path']
 
         print(fol_name)
-        ep =  10
+        ep =  20
 
         net_name = 'net_ep_%s.pt'%ep
         net_path = os.path.join(fol_name, net_name)

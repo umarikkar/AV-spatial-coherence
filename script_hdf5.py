@@ -59,11 +59,11 @@ def main():
 
         total_size = len(d_dataset)
 
-        data_loader = DataLoader(d_dataset, batch_size=1, shuffle=False, num_workers=8, pin_memory=True)
+        data_loader = DataLoader(d_dataset, batch_size=1, shuffle=False, num_workers=0, pin_memory=True)
         # data_loader = DataLoader(d_dataset, batch_size=1, shuffle=False)
 
         count = 0
-        for data in  data_loader:
+        for data in data_loader:
 
             print('count: {}/{}'.format('%s'%count, '%s'%total_size))
 
@@ -146,6 +146,7 @@ def main():
                 # if count == 10:
                 #     break
 
+
         # print('Computing feature scaler...')
         print('Computing feature scaler...', file=open('%s/make_h5py_log.txt' % h5py_dir, "a"))
         utils.compute_scaler(f, h5py_dir, is_salsa=False)
@@ -158,6 +159,7 @@ def main():
 if __name__ == "__main__":
 
     data_str = 'MC' if conf.logmelspectro['multi_mic'] else 'SC'
+
 
     if conf.training_param['frame_seq']:
         data_str = data_str + '_seq'

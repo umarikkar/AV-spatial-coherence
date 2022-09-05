@@ -206,7 +206,10 @@ def flip_imgs(imgs, cams, t_image=conf.data_param['t_image'], t_flip=conf.data_p
 
     return imgs, cams
 
-def gcc_collapse(aud, c_bot=None, c_top=None):
+def gcc_collapse(aud, c_bot=None, c_top=None, collapse_type='max', clip_aud=True, simple_aud=False):
+
+    if simple_aud:
+        clip_aud = False
 
     if c_bot is None:
         c_bot = [0,1,2,3,4,6,7,8,9,10]
@@ -219,8 +222,17 @@ def gcc_collapse(aud, c_bot=None, c_top=None):
     aud_top = aud[:,c_top]
 
     aud_gcc = torch.cat((aud_bot, aud_top), dim=1)
-    aud_gcc = torch.amax(aud_gcc, dim=-2)
-    aud_gcc = aud_gcc[:,:,15:45]
+    if collapse_type=='max':
+        aud_gcc = torch.amax(aud_gcc, dim=-2)
+    else:
+        aud_gcc = aud_gcc.mean(dim=-2)
+
+    if clip_aud:
+        aud_gcc = aud_gcc[:,:,15:45]
+
+    if simple_aud:
+        aud_gcc = torch.argmax(aud_gcc, dim=-1)
+        aud_gcc = (aud_gcc - 32).float()
 
     """
     # # aud_gcc_mean = aud_gcc.mean(dim=-2)
@@ -375,11 +387,18 @@ def create_samples(data,
 
             meta_all = [data[-3], data[-2]]
             meta_all = [[ast.literal_eval(i.decode("utf-8")) for i in d] for d in meta_all]
-            original_res = np.array([2048, 2448])
-            final_res = np.array([all_frames[0].shape[-2], all_frames[0].shape[-1]])
 
-            r = final_res / original_res
+            # meta_all = [data[-3], data[-2]]
+            original_res = np.array([2448, 2048]) # (x, y) is (column, row)
+            final_res = np.array([all_frames[0].shape[-1], all_frames[0].shape[-2]]) # (x, y) is (column, row)
+
+            r = final_res / original_res # (x, y)
             
+            # for meta_person in meta_all:
+                
+            #     meta_person['x'] = np.array(list(map(float, meta_person['x'])))*r[0]
+            #     meta_person['y'] = np.array(list(map(float, meta_person['y'])))*r[1]
+
             for meta_person in meta_all:
                 for d in meta_person:
                     d['x'] = int(float(d['x'])*r[0])

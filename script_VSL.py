@@ -26,11 +26,11 @@ def main():
 
     net, loss_fn = set_network(set_train=False)
 
-    # seq_list = ['all']
-    seq_list = ['all', 'conversation1_t3', 'femalemonologue2_t3', 'interactive1_t2', 'interactive4_t3', 'malemonologue2_t3']
+    seq_list = ['all']
+    # seq_list = ['all', 'conversation1_t3', 'femalemonologue2_t3', 'interactive1_t2', 'interactive4_t3', 'malemonologue2_t3']
     # seq_list = ['femalemonologue2_t3']
 
-    plot_res= True
+    plot_res= False
 
     bs = 1 if plot_res else 16
 
@@ -44,7 +44,15 @@ def main():
 
         # epoch_settings = np.linspace(44, 60, 5).astype('int')
 
-        epoch_settings = [10, 20, 30, 40, 50, 60, 70, 80]
+        epoch_settings = [
+            # 1,
+                10, 
+                20, 
+                30, 
+                # 40,
+                40, 50, 60
+                ]
+        # epoch_settings = [10]
 
         tolerance_list = [1,2,3,4,5,6]
 

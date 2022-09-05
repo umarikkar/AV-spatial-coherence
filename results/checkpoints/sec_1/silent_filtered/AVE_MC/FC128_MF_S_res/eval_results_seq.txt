@@ -1,0 +1,82 @@
+for sequence: conversation1_t3, size: 308, acc: 100.0%, acc_pos: 100.0%, acc_neg: 100.0%
+for sequence: ['conversation1_t3', 'femalemonologue2_t3'], size: 418, acc: 97.15%, acc_pos: 100.0%, acc_neg: 96.09%
+for sequence: ['conversation1_t3', 'interactive1_t2'], size: 497, acc: 96.59%, acc_pos: 100.0%, acc_neg: 95.58%
+for sequence: ['conversation1_t3', 'interactive4_t3'], size: 440, acc: 96.33%, acc_pos: 100.0%, acc_neg: 95.15%
+for sequence: ['conversation1_t3', 'malemonologue2_t3'], size: 418, acc: 97.02%, acc_pos: 100.0%, acc_neg: 95.91%
+for sequence: femalemonologue2_t3, size: 110, acc: 100.0%, acc_pos: 100.0%, acc_neg: 100.0%
+for sequence: ['femalemonologue2_t3', 'interactive1_t2'], size: 299, acc: 97.03%, acc_pos: 100.0%, acc_neg: 96.13%
+for sequence: ['femalemonologue2_t3', 'interactive4_t3'], size: 242, acc: 97.7%, acc_pos: 100.0%, acc_neg: 97.07%
+for sequence: ['femalemonologue2_t3', 'malemonologue2_t3'], size: 220, acc: 97.2%, acc_pos: 100.0%, acc_neg: 96.41%
+for sequence: interactive1_t2, size: 189, acc: 100.0%, acc_pos: 100.0%, acc_neg: 100.0%
+for sequence: ['interactive1_t2', 'interactive4_t3'], size: 321, acc: 97.15%, acc_pos: 100.0%, acc_neg: 96.3%
+for sequence: ['interactive1_t2', 'malemonologue2_t3'], size: 299, acc: 97.0%, acc_pos: 100.0%, acc_neg: 96.07%
+for sequence: interactive4_t3, size: 132, acc: 100.0%, acc_pos: 100.0%, acc_neg: 100.0%
+for sequence: ['interactive4_t3', 'malemonologue2_t3'], size: 242, acc: 94.99%, acc_pos: 100.0%, acc_neg: 93.54%
+for sequence: malemonologue2_t3, size: 110, acc: 100.0%, acc_pos: 100.0%, acc_neg: 100.0%
+
+inter-video accuracy matrix:
+epochs: 60 
+
+acc_total: 
+[[100.    97.15  96.59  96.33  97.02]
+ [  0.   100.    97.03  97.7   97.2 ]
+ [  0.     0.   100.    97.15  97.  ]
+ [  0.     0.     0.   100.    94.99]
+ [  0.     0.     0.     0.   100.  ]] 
+
+acc_pos: 
+[[100. 100. 100. 100. 100.]
+ [  0. 100. 100. 100. 100.]
+ [  0.   0. 100. 100. 100.]
+ [  0.   0.   0. 100. 100.]
+ [  0.   0.   0.   0. 100.]] 
+
+acc_neg: 
+[[100.    96.09  95.58  95.15  95.91]
+ [  0.   100.    96.13  97.07  96.41]
+ [  0.     0.   100.    96.3   96.07]
+ [  0.     0.     0.   100.    93.54]
+ [  0.     0.     0.     0.   100.  ]]
+
+.
+for sequence: conversation1_t3, size: 308, acc: 100.0%, acc_pos: 100.0%, acc_neg: 100.0%
+for sequence: ['conversation1_t3', 'femalemonologue2_t3'], size: 418, acc: 96.05%, acc_pos: 100.0%, acc_neg: 95.36%
+for sequence: ['conversation1_t3', 'interactive1_t2'], size: 497, acc: 96.09%, acc_pos: 100.0%, acc_neg: 95.53%
+for sequence: ['conversation1_t3', 'interactive4_t3'], size: 440, acc: 96.14%, acc_pos: 100.0%, acc_neg: 95.51%
+for sequence: ['conversation1_t3', 'malemonologue2_t3'], size: 418, acc: 95.83%, acc_pos: 100.0%, acc_neg: 95.11%
+for sequence: femalemonologue2_t3, size: 110, acc: 100.0%, acc_pos: 100.0%, acc_neg: 100.0%
+for sequence: ['femalemonologue2_t3', 'interactive1_t2'], size: 299, acc: 96.17%, acc_pos: 100.0%, acc_neg: 95.61%
+for sequence: ['femalemonologue2_t3', 'interactive4_t3'], size: 242, acc: 96.01%, acc_pos: 100.0%, acc_neg: 95.48%
+for sequence: ['femalemonologue2_t3', 'malemonologue2_t3'], size: 220, acc: 96.29%, acc_pos: 100.0%, acc_neg: 95.8%
+for sequence: interactive1_t2, size: 189, acc: 100.0%, acc_pos: 100.0%, acc_neg: 100.0%
+for sequence: ['interactive1_t2', 'interactive4_t3'], size: 321, acc: 95.78%, acc_pos: 100.0%, acc_neg: 95.21%
+for sequence: ['interactive1_t2', 'malemonologue2_t3'], size: 299, acc: 96.26%, acc_pos: 100.0%, acc_neg: 95.72%
+for sequence: interactive4_t3, size: 132, acc: 100.0%, acc_pos: 100.0%, acc_neg: 100.0%
+for sequence: ['interactive4_t3', 'malemonologue2_t3'], size: 242, acc: 95.93%, acc_pos: 100.0%, acc_neg: 95.38%
+for sequence: malemonologue2_t3, size: 110, acc: 100.0%, acc_pos: 100.0%, acc_neg: 100.0%
+
+inter-video accuracy matrix:
+epochs: 60 
+
+acc_total: 
+[[100.    96.05  96.09  96.14  95.83]
+ [  0.   100.    96.17  96.01  96.29]
+ [  0.     0.   100.    95.78  96.26]
+ [  0.     0.     0.   100.    95.93]
+ [  0.     0.     0.     0.   100.  ]] 
+
+acc_pos: 
+[[100. 100. 100. 100. 100.]
+ [  0. 100. 100. 100. 100.]
+ [  0.   0. 100. 100. 100.]
+ [  0.   0.   0. 100. 100.]
+ [  0.   0.   0.   0. 100.]] 
+
+acc_neg: 
+[[100.    95.36  95.53  95.51  95.11]
+ [  0.   100.    95.61  95.48  95.8 ]
+ [  0.     0.   100.    95.21  95.72]
+ [  0.     0.     0.   100.    95.38]
+ [  0.     0.     0.     0.   100.  ]]
+
+.

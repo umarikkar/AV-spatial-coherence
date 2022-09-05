@@ -1,150 +1,15 @@
-for sequence: all, size: 849, acc: 73.61%, acc_pos: 90.22%, acc_neg: 72.49%
-
-inter-video accuracy matrix:
-epochs: 10 
-
-acc_total: 
-[[73.61]] 
-
-acc_pos: 
-[[90.22]] 
-
-acc_neg: 
-[[72.49]]
-
-.
-for sequence: all, size: 849, acc: 77.99%, acc_pos: 87.51%, acc_neg: 77.35%
-
-inter-video accuracy matrix:
-epochs: 20 
-
-acc_total: 
-[[77.99]] 
-
-acc_pos: 
-[[87.51]] 
-
-acc_neg: 
-[[77.35]]
-
-.
-for sequence: all, size: 849, acc: 78.5%, acc_pos: 87.63%, acc_neg: 77.89%
-
-inter-video accuracy matrix:
-epochs: 30 
-
-acc_total: 
-[[78.5]] 
-
-acc_pos: 
-[[87.63]] 
-
-acc_neg: 
-[[77.89]]
-
-.
-for sequence: all, size: 849, acc: 83.96%, acc_pos: 75.27%, acc_neg: 84.54%
-
-inter-video accuracy matrix:
-epochs: 40 
-
-acc_total: 
-[[83.96]] 
-
-acc_pos: 
-[[75.27]] 
-
-acc_neg: 
-[[84.54]]
-
-.
-for sequence: all, size: 849, acc: 83.88%, acc_pos: 71.14%, acc_neg: 84.73%
+for sequence: all, size: 849, acc: 56.25%, acc_pos: 100.0%, acc_neg: 49.93%
 
 inter-video accuracy matrix:
 epochs: 50 
 
 acc_total: 
-[[83.88]] 
+[[56.25]] 
 
 acc_pos: 
-[[71.14]] 
+[[100.]] 
 
 acc_neg: 
-[[84.73]]
-
-.
-for sequence: all, size: 849, acc: 86.12%, acc_pos: 67.02%, acc_neg: 87.41%
-
-inter-video accuracy matrix:
-epochs: 60 
-
-acc_total: 
-[[86.12]] 
-
-acc_pos: 
-[[67.02]] 
-
-acc_neg: 
-[[87.41]]
-
-.
-for sequence: all, size: 849, acc: 86.63%, acc_pos: 72.2%, acc_neg: 87.61%
-
-inter-video accuracy matrix:
-epochs: 70 
-
-acc_total: 
-[[86.63]] 
-
-acc_pos: 
-[[72.2]] 
-
-acc_neg: 
-[[87.61]]
-
-.
-for sequence: all, size: 849, acc: 89.23%, acc_pos: 65.02%, acc_neg: 90.86%
-
-inter-video accuracy matrix:
-epochs: 80 
-
-acc_total: 
-[[89.23]] 
-
-acc_pos: 
-[[65.02]] 
-
-acc_neg: 
-[[90.86]]
-
-.
-for sequence: all, size: 849, acc: 90.48%, acc_pos: 58.66%, acc_neg: 92.62%
-
-inter-video accuracy matrix:
-epochs: 90 
-
-acc_total: 
-[[90.48]] 
-
-acc_pos: 
-[[58.66]] 
-
-acc_neg: 
-[[92.62]]
-
-.
-for sequence: all, size: 849, acc: 90.05%, acc_pos: 65.25%, acc_neg: 91.71%
-
-inter-video accuracy matrix:
-epochs: 100 
-
-acc_total: 
-[[90.05]] 
-
-acc_pos: 
-[[65.25]] 
-
-acc_neg: 
-[[91.71]]
+[[49.93]]
 
 .

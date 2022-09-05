@@ -38,7 +38,7 @@ def plot_scores(scores_raw, scores_all, save=False):
 
 class loss_VSL(nn.Module):
 
-    def __init__(self, tau=0.2, eps=1e-4, contrast_param=conf.contrast_param):
+    def __init__(self, tau=0.1, eps=1e-4, contrast_param=conf.contrast_param):
         super().__init__()
         self.tau=tau
         self.eps=eps
@@ -60,13 +60,18 @@ class loss_VSL(nn.Module):
 
         return L
 
-    def get_score_spatial(self, scores_raw, neg_mask):
+    def get_score_spatial(self, scores_raw, beta=None, device=conf.training_param['device']):
+
+
+        bs = scores_raw.shape[0] // 2
+
+        eye = torch.eye(bs)
+
+        neg_mask = torch.cat((torch.cat((eye, eye), dim=0), torch.cat((eye, eye), dim=0)), dim=1).to(device)
+            
 
         scores_all = torch.exp(scores_raw/self.tau)*neg_mask
 
-        # plot_scores(scores_raw, scores_all)
-
-        bs = scores_all.shape[0] // 2
 
         if beta is None:
             beta = bs
@@ -77,34 +82,27 @@ class loss_VSL(nn.Module):
         scores_neg1 = scores_all[:bs, bs:]
         scores_neg2 = scores_all[bs:, :bs]
 
-        s_pos1 = scores_pos1.diag()
-        s_pos2 = scores_pos2.diag()
-
+        s_pos = scores_pos1.diag() + scores_pos2.diag()
         s_neg = scores_neg1.diag() + scores_neg2.diag()
 
-        loss_1 = -1 * torch.log10((s_pos1 + self.eps) / (s_pos1 + 0.5*beta*s_neg + self.eps)).mean()
-        loss_2 = -1 * torch.log10((s_pos2 + self.eps) / (s_pos2 + 0.5*beta*s_neg + self.eps)).mean()
+        loss = -1 * torch.log10((s_pos + self.eps) / (s_pos + beta*s_neg + self.eps))
 
-        L = 0.5*loss_1 + 0.5*loss_2
+        L = loss.sum() / (neg_mask.sum() + self.eps)
 
-        loss = {
-            'total': L,
-            'easy': None,
-            'hard': None,
-        }
+        # L = 0.5*loss_1 + 0.5*loss_2
 
-        return loss
+        return L
 
     def get_loss(self, scores_raw, neg_mask):
 
         if not self.hard_neg and self.flip_neg: # keyword-mix
             loss_semantic = self.get_score_semantic(scores_raw, neg_mask)
-            loss_spatial = self.get_score_spatial(scores_raw, neg_mask)
+            loss_spatial = self.get_score_spatial(scores_raw)
             loss_total = 0.5*loss_spatial + 0.5*loss_semantic
 
         elif self.hard_neg and self.flip_neg: # keyword-hrd
             loss_semantic = None
-            loss_spatial = self.get_score_spatial(scores_raw, neg_mask)
+            loss_spatial = self.get_score_spatial(scores_raw)
             loss_total = loss_spatial
 
         else: # keyword-none (normal setting-only semantic)

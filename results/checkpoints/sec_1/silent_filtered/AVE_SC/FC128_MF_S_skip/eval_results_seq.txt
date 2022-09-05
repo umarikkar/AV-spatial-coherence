@@ -1,0 +1,1 @@
+for sequence: ['conversation1_t3', 'femalemonologue2_t3'], size: 418, acc: 77.27%, acc_pos: 28.47%, acc_neg: 95.1%

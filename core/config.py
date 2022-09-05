@@ -44,10 +44,18 @@ def set_filename(name='AVE',
     else:
         net_name += '_SF'
 
+    # net_name += '_L2'
+
     if dnn_arch['small_img']:
         net_name += '_S'
     else:
         net_name += '_L'
+
+    if training_param['frame_seq'] and name=='AVE':
+        if dnn_arch['seq_res']:
+            net_name += '_res'
+        elif dnn_arch['seq_skip']:
+            net_name += '_skip'
 
     if not dnn_arch['small_features']:
         net_name += '_large'
@@ -78,6 +86,10 @@ def set_filename(name='AVE',
 
     if training_param['curriculum_learning']:
         net_name += '_CL'
+
+
+
+
 
     # if training_param['rig_neg']:
     # net_name += '_rig'
@@ -122,8 +134,16 @@ input = {
 dnn_arch = {
 
 
-    'net_name':'AVE',
-    # AVE, VSL, AVOL, SpaceNet, FactorNet, MixNet are the options
+    'net_name':'SpaceNet_V',
+    # AVE, VSL, AVOL, SL2, SpaceNet, SpaceNet_split, SpaceNet_V, FactorNet, MixNet are the options
+
+    # SL2 - AVOL with L2 distance metric
+    # VSL - AVOL with cosine similarity
+    # AVOL - AVOL
+
+    #FactorNet
+    #FAV_sim
+
     'heatmap':False, # only applies to the heatmap
 
     'ave_L2':True,
@@ -134,8 +154,11 @@ dnn_arch = {
     'vsl_merge_type':'L2',
 
     'small_features':True, # small feature map (14x14) otherwise (28x28)
-    'small_img':True,
-    'FC_size':128
+    'small_img':False,
+    'FC_size':128,
+
+    'seq_skip':True, # related to the GRU block
+    'seq_res':True,
 
 }
 
@@ -149,7 +172,7 @@ training_param = {
     #'criterion': nn.CrossEntropyLoss,
     'learning_rate': 0.0001, # this is used if user does not provide another lr with the parser
     'epochs': 60, # this is used if user does not provide the epoch number with the parser
-    'batch_size': 8,
+    'batch_size': 16,
     'frame_len_samples': input['frame_len_sec'] * input['sr'], # number of audio samples in 2 sec
 
     'frame_seq': False,
@@ -163,7 +186,7 @@ training_param = {
     'device': device,
     'train_binary': False,
 
-    'curriculum_learning':False # FOR CURRICULUM LEARNING
+    'curriculum_learning':True # FOR CURRICULUM LEARNING
 
     #'input_norm': 'freq_wise', # choose between: 'freq_wise', 'global', or None
     #'step_size':,
@@ -187,7 +210,7 @@ data_param = {
 
         transforms.RandomGrayscale(0.2),
         # transforms.RandomInvert(p=0.5),
-        # transforms.RandomVerticalFlip(p=0.5),
+        transforms.RandomVerticalFlip(p=0.5),
         ]) ,
 
     't_flip' : transforms.Compose([
@@ -205,7 +228,7 @@ data_param = {
 
 logmelspectro = {
     'get_gcc':  True,
-    'multi_mic': False,
+    'multi_mic': True,
     'mfcc_azimuth_only': True, # False for using all the 89 look dir, True only the 15 central-horizontal look dir
     'winlen': 512, # samples
     'hoplen': 100, # samples

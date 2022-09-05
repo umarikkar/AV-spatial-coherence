@@ -1,0 +1,30 @@
+epochs: 10, err_dist: x:2.96, y:0.95, bias corrected: x:0.87, y:0.93
+tolerance: 1, acc_box: x:5.45, y:59.09, x_corr:85.45, y_corr:60.91
+tolerance: 2, acc_box: x:5.45, y:91.82, x_corr:90.91, y_corr:91.82
+tolerance: 3, acc_box: x:52.73, y:93.64, x_corr:94.55, y_corr:93.64
+tolerance: 4, acc_box: x:97.27, y:95.45, x_corr:97.27, y_corr:95.45
+tolerance: 5, acc_box: x:98.18, y:99.09, x_corr:97.27, y_corr:99.09
+tolerance: 6, acc_box: x:98.18, y:100.00, x_corr:97.27, y_corr:100.00
+
+
+
+epochs: 20, err_dist: x:3.08, y:1.72, bias corrected: x:2.47, y:1.91
+tolerance: 1, acc_box: x:4.55, y:53.64, x_corr:9.09, y_corr:21.82
+tolerance: 2, acc_box: x:10.00, y:73.64, x_corr:64.55, y_corr:65.45
+tolerance: 3, acc_box: x:56.36, y:78.18, x_corr:76.36, y_corr:81.82
+tolerance: 4, acc_box: x:85.45, y:81.82, x_corr:76.36, y_corr:88.18
+tolerance: 5, acc_box: x:93.64, y:88.18, x_corr:83.64, y_corr:97.27
+tolerance: 6, acc_box: x:95.45, y:97.27, x_corr:95.45, y_corr:100.00
+
+
+
+epochs: 30, err_dist: x:3.64, y:3.62, bias corrected: x:3.58, y:3.31
+tolerance: 1, acc_box: x:0.91, y:27.27, x_corr:0.91, y_corr:13.64
+tolerance: 2, acc_box: x:18.18, y:50.91, x_corr:23.64, y_corr:44.55
+tolerance: 3, acc_box: x:64.55, y:58.18, x_corr:64.55, y_corr:51.82
+tolerance: 4, acc_box: x:68.18, y:60.91, x_corr:67.27, y_corr:65.45
+tolerance: 5, acc_box: x:71.82, y:64.55, x_corr:71.82, y_corr:77.27
+tolerance: 6, acc_box: x:80.91, y:70.00, x_corr:80.91, y_corr:83.64
+
+
+

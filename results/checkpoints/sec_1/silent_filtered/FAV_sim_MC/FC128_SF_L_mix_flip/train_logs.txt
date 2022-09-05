@@ -1,0 +1,1 @@
+2022-09-03 22:43:39.453170 Epoch 1, Train loss 0.2205, , loss_ez: 0.0637, loss_hd 0.3749, Val loss 0.212, Perfect loss 0.0012

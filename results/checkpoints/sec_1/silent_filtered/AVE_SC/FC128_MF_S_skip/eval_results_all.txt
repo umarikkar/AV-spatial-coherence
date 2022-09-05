@@ -1,0 +1,102 @@
+
+inter-video accuracy matrix:
+epochs: 100 
+
+acc_total: 
+[[0.]] 
+
+acc_pos: 
+[[0.]] 
+
+acc_neg: 
+[[0.]]
+
+.
+
+inter-video accuracy matrix:
+epochs: 80 
+
+acc_total: 
+[[0.]] 
+
+acc_pos: 
+[[0.]] 
+
+acc_neg: 
+[[0.]]
+
+.
+
+inter-video accuracy matrix:
+epochs: 80 
+
+acc_total: 
+[[0.]] 
+
+acc_pos: 
+[[0.]] 
+
+acc_neg: 
+[[0.]]
+
+.
+for sequence: all, size: 849, acc: 74.86%, acc_pos: 40.64%, acc_neg: 79.79%
+
+inter-video accuracy matrix:
+epochs: 80 
+
+acc_total: 
+[[74.86]] 
+
+acc_pos: 
+[[40.64]] 
+
+acc_neg: 
+[[79.79]]
+
+.
+for sequence: all, size: 849, acc: 76.01%, acc_pos: 36.87%, acc_neg: 81.65%
+
+inter-video accuracy matrix:
+epochs: 100 
+
+acc_total: 
+[[76.01]] 
+
+acc_pos: 
+[[36.87]] 
+
+acc_neg: 
+[[81.65]]
+
+.
+for sequence: all, size: 849, acc: 78.43%, acc_pos: 42.64%, acc_neg: 83.62%
+
+inter-video accuracy matrix:
+epochs: 20 
+
+acc_total: 
+[[78.43]] 
+
+acc_pos: 
+[[42.64]] 
+
+acc_neg: 
+[[83.62]]
+
+.
+for sequence: all, size: 849, acc: 89.67%, acc_pos: 29.68%, acc_neg: 93.71%
+
+inter-video accuracy matrix:
+epochs: 60 
+
+acc_total: 
+[[89.67]] 
+
+acc_pos: 
+[[29.68]] 
+
+acc_neg: 
+[[93.71]]
+
+.

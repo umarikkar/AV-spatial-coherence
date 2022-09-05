@@ -1,0 +1,5 @@
+2022-09-01 23:06:44.124330 Epoch 1, Train loss 1.2325, , loss_ez: 0.0, loss_hd 1.2325, Val loss 1.2297, Perfect loss 0.0012
+2022-09-01 23:12:52.409707 Epoch 2, Train loss 1.2305, , loss_ez: 0.0, loss_hd 1.2305, Val loss 1.2296, Perfect loss 0.0012
+2022-09-01 23:24:21.392115 Epoch 1, Train loss 0.9597, , loss_ez: 0.0, loss_hd 0.9597, Val loss 0.9536, Perfect loss 0.0012
+2022-09-01 23:29:03.348149 Epoch 2, Train loss 0.9554, , loss_ez: 0.0, loss_hd 0.9554, Val loss 0.9534, Perfect loss 0.0012
+2022-09-01 23:33:43.639044 Epoch 3, Train loss 0.9553, , loss_ez: 0.0, loss_hd 0.9553, Val loss 0.9534, Perfect loss 0.0012

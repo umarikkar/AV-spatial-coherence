@@ -227,26 +227,29 @@ def read_video_file(sequence, train_or_test, rig, cam_vid, initial_time, base_pa
     frame_seq = conf.training_param['frame_seq']
 
     if num_frames !=1 and frame_seq:
-        frame_idxs = np.linspace(round(initial_time*fps), round(end_time*fps), num_frames)
+        frame_idxs = np.linspace(round(initial_time*fps), round(end_time*fps), num_frames).astype('int')
     else:
         frame_idxs = [round(initial_time*fps)]
 
+    f_id = []
+
     for idx, frame_idx in enumerate(frame_idxs):
         
-        img_name = sequence +'-cam'+ cam_vid + '-frame' + str(int(frame_idx)) + '.jpg'
+        img_name = sequence +'-cam'+ cam_vid + '-frame' + str(frame_idx) + '.jpg'
         frame_name = os.path.join(frame_path, img_name)
 
         if img_name in os.listdir(frame_path):
             im = Image.open(frame_name)
             im = transforms.Resize((224, 224))(im)
             im = transforms.ToTensor()(im)
+            f_id.append(frame_idx)
 
         if idx == 0:
             im2 = im.unsqueeze(0)
         else:
             im2 = torch.concat((im2, im.unsqueeze(0)), dim=0)
 
-    return im2
+    return im2, f_id
 
 
 # GETTING DATASET FROM SCRATCH AND HDF5 ---------------------------------------------------------------------------------------------------------------------------
@@ -285,6 +288,60 @@ class dataset_from_scratch(Dataset):
         pseudo_label = self.csv_list[self.frame_idx_list[audio_seg]][3]
         speech_activity = self.csv_list[self.frame_idx_list[audio_seg]][4]
 
+        cam_vid = str(cam)
+
+        if cam < 12:
+            rig = '01'
+        else:
+            rig = '02'
+            cam = cam - 11
+
+        # if cam > 2:
+        #     print('hi')
+
+        cam = utils.cam_one_hot(cam)
+
+        
+
+        cam = np.expand_dims(cam, axis=0)
+
+        # read audio files
+        audio, sr = read_audio_file(sequence, self.train_or_test, rig, initial_time, self.base_path)
+        # compute log mel features and generate 15x960x64 image tensor
+        tensor = generate_audio_tensor(audio, sr)
+
+        # ## ------------------- VIDEO FILE READING HERE -----------------------------
+
+        img_tensor, _ = read_video_file(sequence, self.train_or_test, rig, cam_vid, initial_time, self.base_path)
+
+        # ## -------------------------------------------------------------------------
+
+        # if self.train_or_test == 'test':
+
+        #     ls_list = []
+
+        #     frame_idxs = self.frame_idx_list[audio_seg] + frame_idxs 
+        #     frame_idxs[np.where(frame_idxs >= len(self.csv_list))] = len(self.csv_list) - 1
+
+        #     for idx in frame_idxs:
+
+        #         ls_list.append(self.csv_list[idx])
+
+        #     # ls = self.csv_list[frame_idxs][:]
+        #     meta_male = str({
+        #         'ID':'Romeo',
+        #         'activity':[ls[5] for ls in ls_list],
+        #         'x':[ls[7] for ls in ls_list],
+        #         'y':[ls[8] for ls in ls_list],
+        #     })
+
+        #     meta_female = str({
+        #         'ID':'Juliet',
+        #         'activity':[ls[6] for ls in ls_list],
+        #         'x':[ls[9] for ls in ls_list],
+        #         'y':[ls[10] for ls in ls_list],
+        #     })
+
         if self.train_or_test == 'test':
             ls = self.csv_list[self.frame_idx_list[audio_seg]]
             meta_male = str({
@@ -303,27 +360,6 @@ class dataset_from_scratch(Dataset):
             
         else:
             meta_male, meta_female = '', ''
-
-        cam_vid = str(cam)
-
-        if cam < 12:
-            rig = '01'
-        else:
-            rig = '02'
-            cam = cam - 11
-        cam = utils.cam_one_hot(cam)
-        cam = np.expand_dims(cam, axis=0)
-
-        # read audio files
-        audio, sr = read_audio_file(sequence, self.train_or_test, rig, initial_time, self.base_path)
-        # compute log mel features and generate 15x960x64 image tensor
-        tensor = generate_audio_tensor(audio, sr)
-
-        # ## ------------------- VIDEO FILE READING HERE -----------------------------
-
-        img_tensor = read_video_file(sequence, self.train_or_test, rig, cam_vid, initial_time, self.base_path)
-
-        # ## -------------------------------------------------------------------------
 
         tensor = tensor.astype('float32')
         input_features = torch.from_numpy(tensor)
@@ -367,18 +403,33 @@ class dataset_from_hdf5(Dataset):
         init_time = self.h5_file['initial_time'][audio_seg]
         pseudo_labels = self.h5_file['pseudo_labels'][audio_seg]
         speech_activity = self.h5_file['speech_activity'][audio_seg]
-        if self.train_or_test=='test':
-            meta_male = self.h5_file['meta_male'][audio_seg]
-            meta_female = self.h5_file['meta_female'][audio_seg]
-        else:
-            meta_male, meta_female = 'not_computed', 'not_computed'
+
 
         rig = self.h5_file['rig'][audio_seg]
 
         # getting sequences only or full samples
-        if not self.seq:
+        if not self.seq and conf.dnn_arch['net_name']=='AVE':
             rand_num = np.random.randint(imgs.shape[0])
             imgs = imgs[rand_num,:,:,:].unsqueeze(0)
+        elif not self.seq:
+            imgs = imgs[0,:,:,:].unsqueeze(0)
+
+
+        if self.train_or_test=='test':
+            # meta_male = ast.literal_eval(self.h5_file['meta_male'][audio_seg].decode("utf-8"))
+            # meta_female = ast.literal_eval(self.h5_file['meta_female'][audio_seg].decode("utf-8"))
+
+            meta_male = self.h5_file['meta_male'][audio_seg]
+            meta_female = self.h5_file['meta_female'][audio_seg]
+
+            # if not self.seq:
+            #     for mp in [meta_male, meta_female]:
+            #         mp['x'] = mp['x'][rand_num]
+            #         mp['y'] = mp['y'][rand_num]
+            #         # mp['activity'] = mp['activity'][rand_num]
+                    
+        else:
+            meta_male, meta_female = 'not_computed', 'not_computed'
 
         if self.normalize:
             # 0-1 norm
@@ -420,8 +471,8 @@ load_idx=False
 
     mic_info = 'MC' if multi_mic else 'SC'
 
-    # if conf.training_param['frame_seq']:
-    mic_info += '_seq'
+    if conf.training_param['frame_seq']:
+        mic_info += '_seq'
 
     h5py_dir_str = os.path.join(base_path, 'data', 'h5py_%s_sec%d' %(mic_info, frame_len),'')
 
@@ -463,7 +514,7 @@ load_idx=False
             for (idx, data) in enumerate(d_dataset):
                 word = data[3].decode("utf-8")
                 word = word[:word.find('-cam')]
-                if word in list(sequences):
+                if word in sequences:
                     idx_list.append(idx)
                 
             d_dataset = Subset(d_dataset, idx_list)
